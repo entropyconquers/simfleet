@@ -1,0 +1,60 @@
+---
+title: Lanes and Metro ports
+description: One worktree, one device, one leased Metro port.
+---
+
+A **lane** is the unit of parallel work: one Git checkout running on one device, served by one Metro on
+a port the fleet leased for it. Lanes are how five branches run side by side without a single port
+collision.
+
+## Port ranges
+
+Each environment in `.sim-fleet/project.json` owns a non-overlapping range:
+
+```json
+"environments": {
+  "development": { "portRange": [8100, 8199] },
+  "staging":     { "portRange": [8200, 8299] },
+  "preprod":     { "portRange": [8300, 8399] },
+  "production":  { "portRange": [8400, 8499] }
+}
+```
+
+`lane start` takes the next free port in the lane's range, starts Metro there from the worktree, and records the lease. Nothing else chooses ports, so two agents can never race for one. Inspect leases with:
+
+```bash
+simfleet ports
+```
+
+A debug lane can ask for a specific `preferredPort` inside its range; it is accepted only when free.
+
+## Lifecycle
+
+```bash
+simfleet lane start <worktree> <device> [environment] [debug|release] [preferredPort]
+simfleet lane launch <lane-id>        # waits up to 15 s for Metro health, then opens the app
+simfleet lane open-url <lane-id> buy  # a path uses the lane's scheme; a full URL passes through
+simfleet lane log <lane-id>           # Metro output
+simfleet lane stop <lane-id>          # stops only the Metro process group this lane owns
+```
+
+Lane creation **fails instead of stealing**: a device, worktree, or port already in use by another lane is an error, not a takeover.
+
+## Debug and release
+
+| | Debug | Release |
+| --- | --- | --- |
+| JavaScript | Served by the lane's Metro | Embedded in the app bundle |
+| Port | Leased | None |
+| Fast Refresh | Yes | No |
+| Android | Supported | Not yet |
+
+Release lanes copy the cached release build and re-bundle it with the lane's environment, so they need no Metro and use less memory.
+
+## Android lanes
+
+Android lanes work the same way with an AVD name in place of a UDID. On launch the fleet runs `adb reverse tcp:<port> tcp:<port>` so the emulator reaches Metro on localhost, then opens your dev client with its `expo-development-client` deep link. The dev client must already be installed on the emulator.
+
+## Environments are JavaScript
+
+Switching a lane between staging and production changes environment variables for Metro and the JS bundle only. It never changes the bundle identifier and never triggers a native build. See [Native builds](/docs/native-builds).

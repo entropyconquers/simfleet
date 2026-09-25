@@ -1,0 +1,30 @@
+---
+title: Worktrees
+description: Create Git worktrees that are ready for the fleet in one command.
+---
+
+Lanes run existing checkouts — any Git worktree of your project works. When you want a fresh one, let the fleet create it so it arrives ready to run:
+
+```bash
+simfleet worktree create <name> <branch> [start-point]
+```
+
+The name must be lowercase letters, digits, and hyphens; it becomes the suffix of a sibling directory next to your main checkout. The command prints the absolute path, which is the root to edit in.
+
+## What preparation does
+
+Configured under `worktrees` in `.sim-fleet/project.json`:
+
+| Field | Effect |
+| --- | --- |
+| `sharedPaths` | Symlinked from the main checkout (default `.sim-fleet` and `node_modules`), so a new worktree does not reinstall dependencies. |
+| `overlayFiles` | Fleet-specific files (for example `metro.config.js`) applied as a patch against `baseRef`, so the branch keeps its own content. A file that cannot be merged is skipped and reported. |
+| `removedFiles` | Removed from the new worktree. |
+| `skills` | Agent skill directories linked into `.claude/skills` and `.codex/skills`. |
+| `baseRef` | The ref overlays are diffed against (default `origin/main`). |
+
+Native build products and dependency trees are never copied. The first `native ensure` in a JS-only worktree is a cache hit.
+
+## Resolving the project
+
+Every `simfleet` command resolves the **main checkout** from any linked worktree (through `git rev-parse --git-common-dir`), so you can run commands from wherever you are editing. The server always runs against the main checkout.

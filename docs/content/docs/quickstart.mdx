@@ -1,0 +1,51 @@
+---
+title: Quickstart
+description: Install simfleet, describe your app, and run a worktree on a slim device.
+---
+
+<Steps>
+  <Step title="Install">
+    ```bash
+    bun add -g simfleet
+    brew install mobai-app/tap/simslim baguette watchman     # iOS
+    ```
+    Android is optional; see [Installation](/docs/installation) for its tools.
+  </Step>
+  <Step title="Describe your app">
+    From the app's repository root:
+    ```bash
+    simfleet init
+    ```
+    This writes `.sim-fleet/project.json`. Set the real bundle identifiers and URL schemes for your debug and release builds. See [Configuration](/docs/configuration) for every field.
+  </Step>
+  <Step title="Start the fleet">
+    ```bash
+    simfleet serve
+    ```
+    The dashboard opens at [http://127.0.0.1:8790](http://127.0.0.1:8790) and a menu-bar icon appears. Leave it running.
+  </Step>
+  <Step title="Boot a slim device">
+    ```bash
+    simfleet sim list
+    simfleet sim boot <udid>          # or: simfleet emu boot <avd>
+    ```
+    The boot returns once the slim profile is applied and verified.
+  </Step>
+  <Step title="Run a lane">
+    ```bash
+    simfleet lane start "$PWD" <udid> development debug
+    simfleet lane launch <lane-id>
+    ```
+    The lane leases a Metro port from the `development` range, starts Metro in your worktree, waits for it to be healthy, and opens the dev client on that device.
+  </Step>
+</Steps>
+
+<Tip>
+Using Claude Code or Codex? Run `simfleet skill install` so your agents know the rules: boot slim, claim devices, let lanes own ports. See [Agent skill](/docs/agent-skill).
+</Tip>
+
+## Next
+
+- Run a second worktree on another device with another `lane start`: no port juggling.
+- Open a device in the dashboard and control it directly.
+- Read [Native builds](/docs/native-builds) before your first native change.

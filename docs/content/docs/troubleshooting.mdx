@@ -1,0 +1,33 @@
+---
+title: Troubleshooting
+description: Common problems and how to fix them.
+---
+
+<AccordionGroup>
+  <Accordion title="A device shows “Unslimmed”">
+    It was booted outside the fleet more than 4 minutes ago. Slimming an iOS simulator reboots it, so auto-slim leaves it alone in case something is mid-test. Click **Slim** in the dashboard or run `simfleet sim slim <udid>` when it is idle.
+  </Accordion>
+  <Accordion title="Every device shows “Not slimmed” even though SimSlim is installed">
+    Check `simfleet status` → `simSlim.installed`. With dozens of simulators, `simslim list` can take several seconds; simfleet allows 45 seconds and caches the result, refreshing in the background. If it still reports not installed, confirm `simslim --version` works in the same shell that runs `simfleet serve`.
+  </Accordion>
+  <Accordion title="The Android screen is laggy or says “Polling screenshots”">
+    Install scrcpy (`brew install scrcpy`) and reload the dashboard. The header next to the device name should read **Live video**. Also check guest memory: simfleet boots with 2 GB; an emulator started elsewhere at 1.5 GB may be swapping. Shut it down and `simfleet emu boot` it again.
+  </Accordion>
+  <Accordion title="lane launch says Metro is not ready">
+    `simfleet lane log <lane-id>` shows Metro's output. Fix the real error (often a missing dependency in the worktree) and launch again; the port lease is kept. Do not start another Metro by hand.
+  </Accordion>
+  <Accordion title="Port already in use">
+    Run `simfleet ports`. If a lane owns it, stop that lane. If an unmanaged process does, stop it yourself or let the lane take the next free port in the range. simfleet never kills processes it did not start.
+  </Accordion>
+  <Accordion title="Android lane opens the wrong screen or nothing happens">
+    The installed app must be a development build that registers your dev-client scheme. Check with `adb shell dumpsys package <package> | grep -i scheme`. Release builds are not supported on Android lanes.
+  </Accordion>
+  <Accordion title="The dashboard is blank">
+    In a git checkout the dashboard builds on the first `serve`. If that failed, run `bun run build:dashboard` in the simfleet directory and reload. The API works either way.
+  </Accordion>
+  <Accordion title="The menu-bar icon does not appear">
+    It needs Xcode's `swiftc`. Run `simfleet tray` to see the compile error. Disable it with `--no-tray` if you do not want it.
+  </Accordion>
+</AccordionGroup>
+
+Still stuck? [Open an issue](https://github.com/entropyconquers/simfleet/issues/new/choose) with `simfleet version`, `sw_vers`, and the relevant `simfleet serve` output.

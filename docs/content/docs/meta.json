@@ -1,0 +1,25 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "---Get started---",
+    "index",
+    "quickstart",
+    "installation",
+    "---Concepts---",
+    "always-slim",
+    "lanes",
+    "native-builds",
+    "agents",
+    "---Guides---",
+    "dashboard",
+    "android",
+    "agent-skill",
+    "worktrees",
+    "---Reference---",
+    "cli",
+    "configuration",
+    "environment",
+    "troubleshooting",
+    "api-reference"
+  ]
+}

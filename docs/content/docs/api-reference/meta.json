@@ -1,0 +1,4 @@
+{
+  "title": "API reference",
+  "pages": ["index", "status", "simulators", "emulators", "streaming", "lanes", "native-builds", "agents"]
+}

@@ -1,0 +1,30 @@
+---
+title: Overview
+description: The local HTTP and WebSocket API behind the CLI and dashboard.
+---
+
+Everything the CLI and dashboard do goes through this API. Use it from scripts, test harnesses, or agents that do not run shell commands.
+
+```bash
+curl -s http://127.0.0.1:8790/api/v1/capabilities
+```
+
+## Conventions
+
+- **Base URL:** `http://127.0.0.1:8790` (set with `SIM_FLEET_UI_PORT`). The server binds to localhost only and has no authentication.
+- **Format:** JSON requests and responses unless noted. Errors return a non-2xx status with `{ "error": "…" }`. `409` means the device is in the wrong state (for example, not running).
+- **Device IDs:** iOS simulators by UDID, Android emulators by AVD name.
+- **Jobs:** Slow operations (boots, slims, native builds, release launches) return `202` with a `job` and a `pollUrl`. Poll it until `job.status` is `completed` or `failed`.
+- **Attribution:** send `x-simfleet-agent` and `x-simfleet-session` headers on device requests so the dashboard can show who touched what. See [Agents](/docs/api-reference/agents).
+
+## Resources
+
+| Resource | Page |
+| --- | --- |
+| `GET /api/v1/status`, `/capabilities`, `/ports` | [Status](/docs/api-reference/status) |
+| `/api/v1/simulators/…` | [Simulators](/docs/api-reference/simulators) |
+| `/api/v1/emulators/…` | [Emulators](/docs/api-reference/emulators) |
+| `ws …/stream` | [Streaming](/docs/api-reference/streaming) |
+| `/api/v1/lanes/…`, `/api/v1/worktrees` | [Lanes](/docs/api-reference/lanes) |
+| `/api/v1/native-builds/…` | [Native builds](/docs/api-reference/native-builds) |
+| `/api/v1/agents`, `/api/v1/devices/{id}/claim` | [Agents](/docs/api-reference/agents) |

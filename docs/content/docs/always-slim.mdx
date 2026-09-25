@@ -1,0 +1,66 @@
+---
+title: Always slim
+description: Every simulator and emulator runs trimmed unless you explicitly ask for stock.
+---
+
+A stock iOS simulator runs about 200 processes and holds 3–6 GB. Most of that is Apple services a React
+Native app never touches: Siri, Photos analysis, App Store, iCloud sync. Android images ship the same
+kind of background weight. simfleet's rule is simple: **every device is slim unless someone explicitly
+asks for stock.**
+
+## What slimming does
+
+<Tabs>
+  <Tab title="iOS">
+    [SimSlim](https://github.com/MobAI-App/simslim) disables background launchd services inside the simulator and reboots it so the change takes effect. A measured example on an iPad simulator: **146 of 170** managed services disabled, about **75 processes**, about **630 MB** resident.
+
+    `simfleet sim boot` applies the project's profile (`simslimProfile` in the config, if set) and returns only after `simslim verify` confirms it. A failed verification is retried once.
+  </Tab>
+  <Tab title="Android">
+    [avdslim](https://github.com/kdbhalala/avdslim) boots the emulator with `-lowram`, host GPU, and no audio or cameras, then disables around 45–50 background packages and records its state on the device.
+
+    simfleet boots with **2 GB guest RAM** by default. Android 15 images swap heavily at avdslim's 1.5 GB default, which makes the device feel laggy. Change it with `SIM_FLEET_ANDROID_RAM_MB` or a `--ram=` entry in `android.avdslimArgs`.
+  </Tab>
+</Tabs>
+
+## Auto-slim
+
+While `simfleet serve` runs, it checks every 15 seconds for devices that are booted but not slim — for example, ones started from Xcode, Android Studio, `xcrun simctl boot`, or another tool.
+
+| Platform | Behaviour |
+| --- | --- |
+| Android | Slimmed in place, no reboot. Typically takes about 5 seconds. |
+| iOS, booted less than 4 minutes ago | Slimmed (this reboots it). |
+| iOS, running longer | Reported as `needs-reboot` and shown as **Unslimmed** in the dashboard, with a Slim button. It is not rebooted automatically, because something may be mid-test on it. |
+
+`status.autoSlim` lists what the loop is doing:
+
+```json
+{
+  "enabled": true,
+  "iosFreshBootSeconds": 240,
+  "devices": [
+    { "deviceId": "763B…", "platform": "ios", "status": "needs-reboot",
+      "reason": "running unslimmed; slimming reboots it, so it is not interrupted automatically" }
+  ]
+}
+```
+
+Failed attempts back off for 10 minutes per device.
+
+## Stock devices
+
+Sometimes you need the full platform, for example to reproduce a bug with Apple Pay or Google services. Ask for it explicitly:
+
+```bash
+simfleet sim boot <udid> --stock
+simfleet emu boot <avd> --stock
+simfleet sim restore <udid>        # restore a running simulator to stock
+simfleet emu restore <avd>
+```
+
+Each of these records an **opt-out** that auto-slim respects. `simfleet sim slim` or `emu slim` clears it again.
+
+<Warning>
+Turn auto-slim off only if another tool must own device lifecycle: `SIM_FLEET_AUTO_SLIM=0`, or `"autoSlim": false` in `.sim-fleet/project.json`.
+</Warning>

@@ -1,0 +1,33 @@
+---
+title: Lanes
+description: Start, launch, and stop lanes; create worktrees.
+---
+
+## `POST /api/v1/lanes`
+
+<ParamField body="worktreePath" type="string" required>Absolute path of an existing checkout.</ParamField>
+<ParamField body="simulatorUdid" type="string" required>Simulator UDID, or AVD name for an Android lane.</ParamField>
+<ParamField body="environment" type="string" default="development">`development`, `staging`, `preprod`, or `production`.</ParamField>
+<ParamField body="mode" type="string" default="debug">`debug` or `release` (iOS only).</ParamField>
+<ParamField body="preferredPort" type="number">Debug only; accepted when free and inside the environment's range.</ParamField>
+<ParamField body="platform" type="string">`ios` or `android`; inferred from the device ID when omitted.</ParamField>
+
+Returns the lane. Release lanes have `port: null` and `metroPid: null`. Creation fails rather than taking a device, worktree, or port another lane holds.
+
+## Operate
+
+| Request | Effect |
+| --- | --- |
+| `GET /api/v1/lanes` | Lanes with Metro health |
+| `POST /api/v1/lanes/{laneId}/launch` | Debug: waits up to 15 s for Metro, then opens the app at its exact URL. Release: returns a job polled at `/api/v1/lanes/launch-jobs/{jobId}`. |
+| `POST /api/v1/lanes/{laneId}/open-url` | Body `{ "url": "buy" }`. A path uses the lane mode's scheme; a full URL passes through. |
+| `GET /api/v1/lanes/{laneId}/log?maxCharacters=20000` | Metro log tail (plain text) |
+| `POST /api/v1/lanes/{laneId}/stop` | Stops only the Metro process group this lane owns and releases the lease |
+
+## `POST /api/v1/worktrees`
+
+```json
+{ "name": "agent-e2e-a", "branch": "fleet-agent/e2e-a", "startPoint": "origin/main" }
+```
+
+Creates a sibling worktree and prepares it for the fleet (shared paths, overlays, skills). The name must be lowercase letters, digits, and hyphens. See [Worktrees](/docs/worktrees).

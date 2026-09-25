@@ -1,0 +1,52 @@
+---
+title: Android emulators
+description: Boot, slim, stream, and drive Android emulators alongside your simulators.
+---
+
+Android devices are addressed by **AVD name** (for example `Pixel_8_API_35`). The `emulator-5554` style serial exists only while an emulator runs, so the fleet never uses it as an identity.
+
+## Lifecycle
+
+```bash
+simfleet emu list                                   # AVDs, state, slim status, footprint, agents
+simfleet emu boot <avd> [--window] [--cold] [--stock]
+simfleet emu slim <avd>                              # re-slim a running emulator, no reboot
+simfleet emu restore <avd>                           # stock packages (records an opt-out)
+simfleet emu shutdown <avd>
+simfleet emu tune <avd>                              # shut-down AVD only: low-memory config.ini
+```
+
+`boot` is headless by default (the dashboard is the screen); `--window` opens the emulator window. Boots are serialized so avdslim never races for a console port, and a boot returns only after the slim state is verified on the device.
+
+## Inspect and drive
+
+Coordinates are device pixels from the UIAutomator tree:
+
+```bash
+simfleet emu ui <avd> [x y]
+simfleet emu tap <avd> <x> <y>
+simfleet emu long-press <avd> <x> <y>
+simfleet emu swipe <avd> <x1> <y1> <x2> <y2>
+simfleet emu type <avd> "ascii text"
+simfleet emu key <avd> Enter
+simfleet emu button <avd> back|home|app-switcher|menu|lock|power|volume-up|volume-down
+simfleet emu rotate <avd> landscape-left
+simfleet emu open-url <avd> 'myapp://path'
+simfleet emu dev-menu <avd>
+simfleet emu screenshot <avd> /absolute/out.png
+```
+
+## Lanes
+
+```bash
+simfleet lane start "$PWD" <avd>
+simfleet lane launch <lane-id>
+```
+
+The fleet leases a Metro port, runs `adb reverse` for it, and opens your dev client with the `expo-development-client` deep link for that port. It prefers your configured scheme, then the `exp+<slug>` scheme Expo registers. The development build must already be installed on the emulator; Android lanes are debug-only.
+
+## Performance
+
+- **Guest RAM.** simfleet boots with 2 GB (`SIM_FLEET_ANDROID_RAM_MB`). At 1.5 GB, Android 15 images swap hundreds of megabytes and input feels sluggish.
+- **Live video.** Install `scrcpy`. The dashboard then streams H.264 and injects touch directly — typically 15–80 ms from input to frame on Apple silicon, versus about two seconds with screenshot polling.
+- **Images.** Google APIs (non-Play) system images let avdslim disable the most packages.

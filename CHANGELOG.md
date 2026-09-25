@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Documentation site at https://entropyconquers.github.io/simfleet (unmint), deployed from `docs/`.
+
 ## [0.1.0] - 2026-09-25
 
 ### Added

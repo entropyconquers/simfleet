@@ -1,0 +1,67 @@
+---
+title: Installation
+description: Requirements and host tools for iOS and Android.
+---
+
+## Requirements
+
+- macOS (Apple silicon or Intel)
+- [Bun](https://bun.sh) 1.1 or newer
+
+```bash
+bun add -g simfleet       # installs the `simfleet` command
+simfleet version
+```
+
+You can also run any command without a global install: `bunx simfleet <command>`.
+
+## iOS
+
+Install Xcode and its command-line tools, then:
+
+```bash
+brew install mobai-app/tap/simslim baguette watchman
+```
+
+| Tool | Used for |
+| --- | --- |
+| [SimSlim](https://github.com/MobAI-App/simslim) | Disabling background services in each simulator |
+| [Baguette](https://github.com/tddworks/baguette) | Streaming simulator frames and injecting input |
+| [Watchman](https://facebook.github.io/watchman/) | Fast Metro file watching across many worktrees |
+
+## Android
+
+Install the Android SDK with platform-tools and the emulator (Android Studio does this), and make sure
+`ANDROID_HOME` points at it or it lives in `~/Library/Android/sdk`. Then:
+
+```bash
+brew tap kdbhalala/avdslim https://github.com/kdbhalala/avdslim.git
+brew install avdslim scrcpy
+```
+
+| Tool | Used for |
+| --- | --- |
+| [avdslim](https://github.com/kdbhalala/avdslim) | Low-memory emulator boots and disabling background packages |
+| [scrcpy](https://github.com/Genymobile/scrcpy) | Its device server provides live H.264 video and direct touch in the dashboard |
+
+<Note>
+Without scrcpy the dashboard falls back to polling screenshots, which works but feels slow. Google APIs (non-Play) system images let avdslim reclaim the most memory.
+</Note>
+
+## Verify
+
+```bash
+simfleet serve --no-tray &
+simfleet status | head -40
+```
+
+`status` reports which host tools were found: `simSlim` for iOS, and `android.adbPath`, `android.emulatorPath`, and `android.avdslim` for Android.
+
+## Upgrading
+
+```bash
+bun add -g simfleet@latest
+simfleet skill install       # refresh the agent skill
+```
+
+Restart `simfleet serve`; open dashboard tabs reload themselves.

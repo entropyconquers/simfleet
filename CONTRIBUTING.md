@@ -34,12 +34,14 @@ SIM_FLEET_URL=http://127.0.0.1:8791 bun --cwd dashboard run dev
 | `dashboard/` | Vite + React 19 + Tailwind v4 + shadcn dashboard, built into `dist/dashboard` |
 | `tray/` | Swift menu-bar helper |
 | `skills/simfleet/` | Agent skill shipped with the package |
+| `docs/` | Documentation site (unmint / Fumadocs, static export to GitHub Pages); pages in `docs/content/docs` |
 
 ## Conventions
 
 - Match the surrounding code; keep comments for the *why*.
 - Never break the "always slim" contract: devices boot slim unless a caller explicitly asks for stock.
-- API changes: update `GET /api/v1/capabilities`, `skills/simfleet/references/api.md`, and the README.
+- API changes: update `GET /api/v1/capabilities`, `skills/simfleet/references/api.md`,
+  `docs/content/docs/api-reference`, and the README.
 - Dashboard changes must stay keyboard and screen-reader accessible and work in light and dark.
 - Add a line to `CHANGELOG.md` under "Unreleased".
 

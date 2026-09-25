@@ -1,0 +1,45 @@
+---
+title: Agents
+description: Agent sessions, attribution headers, and device claims.
+---
+
+## Headers
+
+Send these on any device request to attribute it to an agent session:
+
+| Header | Value |
+| --- | --- |
+| `x-simfleet-agent` | `claude`, `codex`, or another short name |
+| `x-simfleet-session` | The session or thread ID |
+
+Each attributed request records a **touch** on the device, which expires after 30 minutes without activity.
+
+## `GET /api/v1/agents`
+
+```json
+{
+  "sessions": [
+    { "kind": "claude", "sessionId": "2e82…", "title": "checkout-fix", "cwd": "/Users/me/app-feature-x",
+      "status": "idle", "pid": 1209, "startedAt": "…", "updatedAt": "…" }
+  ],
+  "devices": [
+    { "platform": "ios", "deviceId": "8CB8…", "name": "iPhone 17", "state": "Booted",
+      "agents": [{ "kind": "claude", "sessionId": "2e82…", "title": "checkout-fix", "cwd": "/Users/me/app-feature-x",
+                   "via": "claim", "note": "reviewing checkout", "lastSeenAt": "…" }] }
+  ]
+}
+```
+
+`via` is `claim`, `touch`, or `lane-worktree` (a lane whose worktree is the session's working directory).
+
+## `POST /api/v1/devices/{deviceId}/claim`
+
+```json
+{ "agent": "claude", "sessionId": "2e82…", "note": "reviewing checkout" }
+```
+
+`agent` and `sessionId` can come from the body or the headers above. Returns `201` with the attachment. A claim lasts until released or until the Claude Code session exits.
+
+## `DELETE /api/v1/devices/{deviceId}/claim`
+
+Releases the caller's claim. Returns `{ "released": true, "deviceId": "…" }`.

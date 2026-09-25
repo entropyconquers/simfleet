@@ -1,0 +1,45 @@
+---
+title: Agent skill
+description: Teach Claude Code and Codex to use the fleet safely.
+---
+
+simfleet ships an [agent skill](https://github.com/entropyconquers/simfleet/tree/main/skills/simfleet): a `SKILL.md` plus a full API reference that coding agents load when a task involves simulators, emulators, Metro, or running a branch. It encodes the rules that keep many agents from stepping on each other.
+
+## Install
+
+```bash
+simfleet skill install              # ~/.claude/skills/simfleet and ~/.codex/skills/simfleet
+simfleet skill install --project    # ./.claude/skills and ./.codex/skills — commit it with your app
+simfleet skill install --claude     # only Claude Code
+simfleet skill install --codex      # only Codex
+```
+
+Re-run it after upgrading simfleet. To have new worktrees link the skill automatically, list it in the project config:
+
+```json
+"worktrees": { "skills": [".claude/skills/simfleet"] }
+```
+
+## What it teaches
+
+- **Boot slim.** Use `simfleet sim boot` / `emu boot`, never `simctl`, Xcode, or another tool's boot command. Stock only when you ask for it.
+- **Claim what you hold.** `simfleet claim` before a long task, `release` after, and never drive a device another live session has claimed.
+- **Lanes own ports.** No hand-picked ports, no killing unknown Metro processes.
+- **JS-first.** Start a lane and launch; build natively only through `native plan` / `native ensure`.
+- **Prove it.** Report the lane, device, environment, port, slim state, and whether the native build was reused, with UI evidence of the feature itself.
+
+## Always-slim policy for every project
+
+The skill applies inside simfleet projects. To make agents boot slim devices everywhere, add a policy to your global instructions — `~/.claude/CLAUDE.md` for Claude Code, `~/.codex/AGENTS.md` for Codex:
+
+```md title="~/.claude/CLAUDE.md"
+## Simulators and emulators: always slim
+
+Boot iOS simulators and Android emulators slim unless I explicitly ask for stock.
+In projects with .sim-fleet/project.json use `simfleet sim boot` / `simfleet emu boot`.
+Elsewhere use `simslim on <udid>` (iOS) and `avdslim start <avd>` / `avdslim on <serial>` (Android).
+```
+
+## Other agents
+
+Any agent can use the fleet through the CLI or HTTP API. Set `SIMFLEET_AGENT` and `SIMFLEET_SESSION_ID` (or send `x-simfleet-agent` and `x-simfleet-session` headers) so its activity is attributed.

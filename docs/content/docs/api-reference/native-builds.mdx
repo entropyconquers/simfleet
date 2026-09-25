@@ -1,0 +1,18 @@
+---
+title: Native builds
+description: Plan and ensure cached native builds.
+---
+
+## `GET /api/v1/native-builds/plan`
+
+Query: `worktreePath`, `mode` (`debug` or `release`), and optionally `simulatorUdid`.
+
+Reports the native fingerprint, cache hit or miss, the cached artifact, whether it is installed on the simulator, the Google services file, and whether the installed app identifier is declared in `nativeAuth`. Builds nothing.
+
+## `POST /api/v1/native-builds/ensure`
+
+```json
+{ "worktreePath": "/abs/path", "simulatorUdid": "8CB8…", "mode": "debug" }
+```
+
+Starts a single-flight job: the first request for a fingerprint builds it, and concurrent requests wait for the same job. Poll `GET /api/v1/native-builds/jobs/{jobId}` until it completes; the artifact is then installed on the simulator.

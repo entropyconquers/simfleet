@@ -1,0 +1,54 @@
+---
+title: Streaming
+description: Live video and input over WebSockets.
+---
+
+## iOS
+
+```
+ws://127.0.0.1:8790/api/v1/simulators/{udid}/stream?format=mjpeg&version=v2
+```
+
+Binary messages are JPEG frames. Send JSON text messages to control the stream, for example `{ "type": "set_fps", "fps": 30 }` and `{ "type": "snapshot" }`. Keep one socket per visible simulator, keep the last frame while reconnecting, and back off exponentially.
+
+## Android
+
+```
+ws://127.0.0.1:8790/api/v1/emulators/{avd}/stream
+```
+
+Requires scrcpy on the host (`brew install scrcpy`); without it the upgrade fails with `501`. The server pushes scrcpy's device server to the emulator, forwards its H.264 stream, and shares one encoder session between every viewer.
+
+### Messages from the server
+
+The first text message describes the stream:
+
+```json
+{ "type": "meta", "width": 720, "height": 1280, "name": "sdk_gphone64_arm64" }
+```
+
+Each binary message is one packet: a flag byte followed by an Annex B H.264 payload.
+
+| Bit | Meaning |
+| --- | --- |
+| `0x01` | Codec config (SPS/PPS). Sent at start and after every rotation. |
+| `0x02` | Key frame |
+
+With WebCodecs: build the codec string from the SPS (`avc1.PPCCLL`), configure a `VideoDecoder` without a `description` (Annex B), and prepend the latest config to each key frame.
+
+### Messages to the server
+
+Coordinates are in **video pixels** and must use the current video size (it changes on rotation).
+
+```json
+{ "type": "touch", "action": "down", "x": 360, "y": 900, "width": 720, "height": 1280 }
+{ "type": "touch", "action": "move", "x": 360, "y": 600, "width": 720, "height": 1280 }
+{ "type": "touch", "action": "up",   "x": 360, "y": 400, "width": 720, "height": 1280 }
+{ "type": "scroll", "x": 360, "y": 640, "width": 720, "height": 1280, "dx": 0, "dy": -2 }
+{ "type": "key", "code": "Enter" }
+{ "type": "text", "text": "hello" }
+{ "type": "button", "button": "back" }
+{ "type": "reset" }
+```
+
+`reset` asks the encoder for a fresh config and key frame, which is useful after a decoder error. `scroll` values are wheel notches (±16 max).

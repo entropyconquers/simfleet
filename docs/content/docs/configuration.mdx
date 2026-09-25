@@ -1,0 +1,74 @@
+---
+title: Project configuration
+description: Every field of .sim-fleet/project.json.
+---
+
+simfleet runs against the nearest directory containing `.sim-fleet/project.json` and resolves linked worktrees to their main checkout. Override the project with `SIM_FLEET_PROJECT_ROOT`. `simfleet init` writes a starter file.
+
+```jsonc title=".sim-fleet/project.json"
+{
+  "schemaVersion": 1,
+  "projectName": "my-app",
+  "nativeShells": {
+    "debug":   { "appName": "My App Dev", "bundleId": "com.example.app.dev", "scheme": "myapp-dev" },
+    "release": { "appName": "My App",     "bundleId": "com.example.app",     "scheme": "myapp" }
+  },
+  "environments": {
+    "development": { "envFile": ".env.development", "portRange": [8100, 8199] },
+    "staging":     { "portRange": [8200, 8299] },
+    "preprod":     { "portRange": [8300, 8399] },
+    "production":  { "portRange": [8400, 8499] }
+  }
+}
+```
+
+## Required
+
+<ParamField body="schemaVersion" type="1" required>
+  Always `1`.
+</ParamField>
+<ParamField body="projectName" type="string" required>
+  Display name; also the default for host state and cache directory names.
+</ParamField>
+<ParamField body="nativeShells" type="object" required>
+  The `debug` and `release` native apps. Each has `appName`, `bundleId`, and `scheme`, plus optional `legacySchemes` (extra schemes to try when opening links), `androidPackage` (when it differs from `bundleId`), and `googleServicesFile` (checked to match `bundleId`). Bundle identifiers must not contain worktree suffixes.
+</ParamField>
+<ParamField body="environments" type="object" required>
+  `development`, `staging`, `preprod`, and `production`, each with a non-overlapping `portRange` and an optional `envFile`.
+</ParamField>
+
+## Optional
+
+<ParamField body="nativeAuth" type="object">
+  `{ provider, allowedAppIdentifiers }`. Every native shell's `bundleId` must be listed; `native plan` reports whether the installed app is.
+</ParamField>
+<ParamField body="simslimProfile" type="string">
+  Path to a SimSlim profile JSON applied on every iOS boot.
+</ParamField>
+<ParamField body="autoSlim" type="boolean" default="true">
+  Slim devices booted outside the fleet. See [Always slim](/docs/always-slim).
+</ParamField>
+<ParamField body="stateDirectoryName" type="string">
+  Folder under `~/Library/Application Support` for lanes and leases. Default: `<projectName> Sim Fleet`.
+</ParamField>
+<ParamField body="cacheDirectoryName" type="string">
+  Folder under `~/Library/Caches` for native builds.
+</ParamField>
+<ParamField body="appProcessNames" type="string[]">
+  Process names the dashboard treats as your app when attributing simulator memory.
+</ParamField>
+<ParamField body="metro" type="object">
+  `env` and `modeEnv.debug` / `modeEnv.release`: environment variables for Metro and release bundling. Values can use `{environment}`, `{mode}`, and `{port}` (`embedded` for release).
+</ParamField>
+<ParamField body="release.entryFile" type="string">
+  Entry file for release bundles. By default the first of `index.ts`, `index.tsx`, or `index.js` that exists.
+</ParamField>
+<ParamField body="nativeFingerprint" type="object">
+  Override or extend fingerprint inputs: `rootFiles`, `sourceDirectories`, `localNativeDirectories`, `localNativeFiles`.
+</ParamField>
+<ParamField body="worktrees" type="object">
+  `baseRef`, `overlayFiles`, `removedFiles`, `sharedPaths`, and `skills`. See [Worktrees](/docs/worktrees).
+</ParamField>
+<ParamField body="android" type="object">
+  `activity` (launcher activity override) and `avdslimArgs` (extra avdslim flags, for example `["--keep=com.google.android.apps.maps", "--ram=3072"]`).
+</ParamField>

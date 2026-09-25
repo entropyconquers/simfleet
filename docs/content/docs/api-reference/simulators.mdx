@@ -1,0 +1,54 @@
+---
+title: Simulators
+description: iOS simulator lifecycle, inspection, and input.
+---
+
+## Create
+
+`GET /api/v1/simulator-creation-options` returns installed device types and runtimes. Then:
+
+```http
+POST /api/v1/simulators
+{ "name": "Fleet iPhone", "deviceTypeIdentifier": "…", "runtimeIdentifier": "…" }
+```
+
+The new simulator stays shut down until you boot it through the fleet.
+
+## Lifecycle
+
+```http
+POST /api/v1/simulators/{udid}/boot       # body { "stock": true } boots without slimming
+POST /api/v1/simulators/{udid}/slim
+POST /api/v1/simulators/{udid}/restore
+POST /api/v1/simulators/{udid}/shutdown
+POST /api/v1/simulators/{udid}/open       # show in Simulator.app
+```
+
+Each returns `202` with a `job` and `pollUrl` (`GET /api/v1/simulators/jobs/{jobId}`). Boots succeed only after `simslim verify` confirms the profile, with one automatic retry; cold boots can take a few minutes when several devices contend for CoreSimulator. `restore` and stock boots record an opt-out from [auto-slim](/docs/always-slim); `slim` and a normal boot clear it.
+
+## Inspect
+
+| Request | Returns |
+| --- | --- |
+| `GET /api/v1/simulators/{udid}/ui` | Accessibility tree with frames in points |
+| `GET /api/v1/simulators/{udid}/ui?x=20&y=40` | Hit test at a point |
+| `GET /api/v1/simulators/{udid}/screenshot` | JPEG |
+| `GET /api/v1/simulators/{udid}/definition` | Screen and device geometry |
+
+## Input
+
+`POST /api/v1/simulators/{udid}/input` with one of:
+
+```json
+{ "kind": "tap", "x": 200, "y": 436, "width": 400, "height": 872 }
+{ "kind": "double-tap", "x": 200, "y": 436, "width": 400, "height": 872 }
+{ "kind": "swipe", "startX": 200, "startY": 700, "endX": 200, "endY": 200, "width": 400, "height": 872 }
+{ "kind": "text", "text": "hello" }
+{ "kind": "key", "code": "Enter", "modifiers": ["command"] }
+{ "kind": "button", "button": "home" }
+{ "kind": "orientation", "orientation": "landscape-left" }
+{ "kind": "open-url", "url": "myapp://path" }
+{ "kind": "shake" }
+```
+
+`width` and `height` describe the frame your coordinates are in; pass the size from `/definition` to use device points directly. Key codes are W3C `KeyboardEvent.code` values.

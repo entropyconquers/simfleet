@@ -1,0 +1,39 @@
+---
+title: Status
+description: Fleet state, capabilities, and port leases.
+---
+
+## `GET /api/v1/status`
+
+Everything the dashboard shows, in one payload. Cached for a few seconds.
+
+<ResponseField name="memory" type="object">Host `totalBytes`, `freePercent`, `swapTotalBytes`, `swapUsedBytes`.</ResponseField>
+<ResponseField name="simulators" type="array">`udid`, `name`, `runtime`, `state`, `rssBytes`, `processCount`, `uptimeSeconds`, `simSlim` state, current `operation`, and attached `agents`.</ResponseField>
+<ResponseField name="emulators" type="array">`avd`, `displayName`, `state` (`Booted`, `Booting`, `Offline`, `Shutdown`), `serial`, `apiLevel`, `footprintBytes`, `avdSlim` state, `operation`, and `agents`.</ResponseField>
+<ResponseField name="sessions" type="array">Lanes: `id`, `platform`, `branch`, `worktreePath`, `simulatorUdid` (UDID or AVD), `environment`, `mode`, `bundleId`, `port`, `metroPid`, `startedAt`.</ResponseField>
+<ResponseField name="simSlim" type="object">Whether SimSlim is installed, its version, the profile path, and per-device slim state.</ResponseField>
+<ResponseField name="android" type="object">SDK, `adbPath`, `emulatorPath`, and `avdslim` availability.</ResponseField>
+<ResponseField name="autoSlim" type="object">`enabled`, `iosFreshBootSeconds`, and `devices[]` with `status` (`slimming`, `needs-reboot`, `opted-out`, `unavailable`, `backoff`) and a `reason`.</ResponseField>
+<ResponseField name="agentSessions" type="array">Live Claude Code and Codex sessions.</ResponseField>
+<ResponseField name="worktrees" type="array">Checkouts of the project.</ResponseField>
+<ResponseField name="metroListeners" type="array">Every process listening on a Metro port range.</ResponseField>
+
+## `GET /api/v1/capabilities`
+
+Supported lifecycle actions, input kinds, buttons, attribution headers, and resource templates per platform. Use it to feature-detect instead of hard-coding.
+
+## `GET /api/v1/ports`
+
+Each environment and mode's port range, live leases, and the next free port.
+
+```json
+{
+  "allocation": "leased-by-lane",
+  "variants": [
+    { "environment": "development", "mode": "debug", "range": [8100, 8199],
+      "leasedPorts": [8104], "leases": [{ "port": 8104, "laneId": "feature-x-8CB8…" }], "nextAvailablePort": 8105 },
+    { "environment": "development", "mode": "release", "range": null,
+      "leasedPorts": [], "leases": [], "nextAvailablePort": null }
+  ]
+}
+```

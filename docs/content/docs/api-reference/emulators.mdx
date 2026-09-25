@@ -1,0 +1,43 @@
+---
+title: Emulators
+description: Android emulator lifecycle, inspection, and input.
+---
+
+Emulators are addressed by AVD name. Operations on an emulator that is not running return `409`.
+
+## Lifecycle
+
+```http
+POST /api/v1/emulators/{avd}/boot       # { "headless": true, "cold": false, "stock": false }
+POST /api/v1/emulators/{avd}/slim
+POST /api/v1/emulators/{avd}/restore
+POST /api/v1/emulators/{avd}/shutdown
+POST /api/v1/emulators/{avd}/tune       # shut-down AVD only; rewrites config.ini for low memory
+```
+
+Each returns `202` with a `job` and `pollUrl` (`GET /api/v1/emulators/jobs/{jobId}`). Boots are serialized so avdslim never races for a console port.
+
+## Inspect
+
+| Request | Returns |
+| --- | --- |
+| `GET /api/v1/emulators/{avd}/ui` | UIAutomator nodes with device-pixel bounds |
+| `GET /api/v1/emulators/{avd}/ui?x=&y=` | Hit test |
+| `GET /api/v1/emulators/{avd}/screenshot` | PNG |
+| `GET /api/v1/emulators/{avd}/definition` | Pixel size and density |
+
+## Input
+
+`POST /api/v1/emulators/{avd}/input` accepts the [simulator input kinds](/docs/api-reference/simulators#input) (except `shake`) plus:
+
+```json
+{ "kind": "long-press", "x": 540, "y": 960 }
+{ "kind": "dev-menu" }
+{ "kind": "button", "button": "back" }
+```
+
+Coordinates are device pixels unless `width` and `height` describe a scaled frame. Buttons: `home`, `back`, `app-switcher`, `menu`, `lock`, `power`, `volume-up`, `volume-down`. Text must be ASCII.
+
+<Tip>
+For interactive control prefer the [stream socket](/docs/api-reference/streaming): it injects touch down, move, and up directly instead of spawning a process per gesture.
+</Tip>

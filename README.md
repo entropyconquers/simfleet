@@ -13,6 +13,14 @@
   <img alt="macOS" src="https://img.shields.io/badge/platform-macOS-lightgrey">
 </p>
 
+<p align="center">
+  <a href="https://entropyconquers.github.io/simfleet/docs/"><strong>Documentation</strong></a> ·
+  <a href="https://entropyconquers.github.io/simfleet/docs/quickstart/">Quickstart</a> ·
+  <a href="https://entropyconquers.github.io/simfleet/docs/api-reference/">API reference</a>
+</p>
+
+<p align="center"><img src="docs/public/images/dashboard.png" alt="The simfleet dashboard with a live Android emulator" width="900"></p>
+
 ---
 
 Running several branches of a React Native app at once usually means five simulators eating 4 GB each,
@@ -249,7 +257,9 @@ bun run check                  # typecheck, tests, dashboard build
 cd dashboard && bun run dev    # hot-reloading dashboard, proxied to a running `simfleet serve`
 ```
 
-A git checkout builds the dashboard automatically on the first `simfleet serve`. See
+A git checkout builds the dashboard automatically on the first `simfleet serve`. The documentation site
+lives in [`docs/`](docs) (Next.js + [unmint](https://github.com/gregce/unmint)); run `bun install && bun run dev`
+there to preview it. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the project layout and conventions.
 
 ## Acknowledgements

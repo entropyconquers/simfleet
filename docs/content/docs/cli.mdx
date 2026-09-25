@@ -1,0 +1,77 @@
+---
+title: CLI
+description: Every simfleet command.
+---
+
+The CLI is a thin client over the local API. It talks to `SIM_FLEET_URL` (default `http://127.0.0.1:8790`), prints JSON, and exits non-zero on errors. `simfleet help` prints the full usage.
+
+## Server and setup
+
+| Command | Description |
+| --- | --- |
+| `simfleet serve [--no-tray]` | Start the dashboard, API, auto-slim loop, and menu-bar icon |
+| `simfleet tray` | Run only the menu-bar icon |
+| `simfleet init` | Write a starter `.sim-fleet/project.json` |
+| `simfleet skill install [--claude\|--codex] [--project]` | Install the agent skill |
+| `simfleet version` | Print the version |
+
+## Fleet state
+
+| Command | Description |
+| --- | --- |
+| `simfleet status` | Host memory, worktrees, lanes, Metros, simulators, emulators, agents, auto-slim |
+| `simfleet ports` | Environment port ranges and live leases |
+| `simfleet agents` | Live Claude Code / Codex sessions and their devices |
+| `simfleet claim <device> [note]` | Attach this agent session to a device |
+| `simfleet release <device>` | Release a claim |
+
+## iOS simulators
+
+| Command | Description |
+| --- | --- |
+| `simfleet sim list` | Simulators with state, memory, and slim status |
+| `simfleet sim creation-options` | Installed device types and runtimes |
+| `simfleet sim create <name> <device-type-id> <runtime-id>` | Create a simulator (left shut down) |
+| `simfleet sim boot <udid> [--stock]` | Boot slim (or stock) and verify |
+| `simfleet sim slim\|restore\|shutdown\|open <udid>` | Lifecycle |
+| `simfleet sim ui <udid> [x y]` | Accessibility tree, or hit-test a point |
+| `simfleet sim tap <udid> <x> <y> [w h]` | Tap in points |
+| `simfleet sim swipe <udid> <x1> <y1> <x2> <y2> [w h]` | Swipe |
+| `simfleet sim type <udid> <text>` | Type text |
+| `simfleet sim key <udid> <code> [modifier,…]` | Press a key (W3C `KeyboardEvent.code`) |
+| `simfleet sim button <udid> <button>` | Hardware button |
+| `simfleet sim rotate <udid> <orientation>` | Rotate |
+| `simfleet sim open-url <udid> <url>` | Open a URL or deep link |
+| `simfleet sim shake <udid>` | Shake gesture |
+
+When `w h` are omitted the CLI reads the screen size from the device, so coordinates are correct on any iPhone or iPad.
+
+## Android emulators
+
+| Command | Description |
+| --- | --- |
+| `simfleet emu list` | AVDs with state, slim status, and footprint |
+| `simfleet emu boot <avd> [--window] [--cold] [--stock]` | Boot (headless by default), slim, verify |
+| `simfleet emu slim\|restore\|shutdown\|tune <avd>` | Lifecycle |
+| `simfleet emu ui <avd> [x y]` | UIAutomator tree, or hit-test a point |
+| `simfleet emu tap\|double-tap\|long-press <avd> <x> <y>` | Touch in device pixels |
+| `simfleet emu swipe <avd> <x1> <y1> <x2> <y2>` | Swipe |
+| `simfleet emu type <avd> <text>` | Type ASCII text |
+| `simfleet emu key <avd> <code>` | Press a key |
+| `simfleet emu button <avd> <button>` | `home`, `back`, `app-switcher`, `menu`, `lock`, `power`, `volume-up`, `volume-down` |
+| `simfleet emu rotate <avd> <orientation>` | Rotate |
+| `simfleet emu open-url <avd> <url>` | Open a URL or deep link |
+| `simfleet emu dev-menu <avd>` | Open the React Native dev menu |
+| `simfleet emu screenshot <avd> <out.png>` | Save a screenshot |
+
+## Lanes, worktrees, and native builds
+
+| Command | Description |
+| --- | --- |
+| `simfleet lane list` | Lanes with Metro health |
+| `simfleet lane start <worktree> <device> [env] [mode] [port]` | Start a lane |
+| `simfleet lane launch\|stop\|log <lane-id>` | Operate a lane |
+| `simfleet lane open-url <lane-id> <url-or-path>` | Open a deep link with the lane's scheme |
+| `simfleet worktree create <name> <branch> [start-point]` | Create a fleet-ready worktree |
+| `simfleet native plan <worktree> <debug\|release> [udid]` | Fingerprint and cache status |
+| `simfleet native ensure <worktree> <udid> <debug\|release>` | Build if needed, then install |

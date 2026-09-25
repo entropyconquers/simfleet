@@ -1,0 +1,43 @@
+---
+title: Agent attribution
+description: See which Claude Code or Codex session is driving each device, and let sessions claim devices.
+---
+
+When several agents share a Mac, the question "who is using this simulator?" matters. simfleet answers
+it for every device.
+
+## Automatic attribution
+
+The `simfleet` CLI detects the session it runs in and sends it with every request:
+
+| Agent | Detected from |
+| --- | --- |
+| Claude Code | `CLAUDE_CODE_SESSION_ID` |
+| Codex | `CODEX_THREAD_ID` or `CODEX_SESSION_ID` |
+| Anything else | `SIMFLEET_AGENT` and `SIMFLEET_SESSION_ID` |
+
+A device request (tap, boot, screenshot, lane start, …) from a session records a **touch** on that device. Touches expire after 30 minutes without activity. A lane whose worktree matches an agent session's working directory is attributed to that session too.
+
+## Claims
+
+A claim makes ownership explicit and lasts until it is released, or until the Claude Code session exits:
+
+```bash
+simfleet claim <udid-or-avd> "reviewing the checkout flow"
+simfleet release <udid-or-avd>
+simfleet agents                      # live sessions and the devices attached to each
+```
+
+<Warning>
+Claims are a convention agents follow, not a lock. The bundled [agent skill](/docs/agent-skill) tells agents never to drive a device another live session has claimed.
+</Warning>
+
+## Where you see it
+
+- **Dashboard.** Each device tile shows its agents; the Agents view lists every live Claude Code and Codex session with its devices.
+- **Menu bar.** Right-click the icon for a list of running devices and who is attached to each. Left-click opens the dashboard.
+- **API.** `GET /api/v1/agents`. See [Agents](/docs/api-reference/agents).
+
+## Session discovery
+
+simfleet finds live sessions without any agent plugin: Claude Code sessions from `~/.claude/sessions` (checking that each process is alive), and Codex threads from its local state database (recently active ones).
