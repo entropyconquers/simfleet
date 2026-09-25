@@ -37,10 +37,14 @@ export type DeviceAttachment = {
   lastSeenAt: string;
 };
 
+/** A device someone explicitly wants stock; auto-slim leaves it alone. */
+export type SlimOptOut = { deviceId: string; platform: DevicePlatform; since: string };
+
 type FleetState = {
   version: 1;
   sessions: FleetSession[];
   attachments?: DeviceAttachment[];
+  slimOptOuts?: SlimOptOut[];
 };
 
 const statePath = path.join(FLEET_CONFIG.stateDirectory, "state.json");
@@ -57,6 +61,19 @@ export function loadState(): FleetState {
 
 export function sessionPlatform(session: FleetSession): DevicePlatform {
   return session.platform || "ios";
+}
+
+export function setSlimOptOut(deviceId: string, platform: DevicePlatform, optOut: boolean): void {
+  updateState((state) => {
+    const others = (state.slimOptOuts || []).filter((entry) => entry.deviceId !== deviceId);
+    state.slimOptOuts = optOut
+      ? [...others, { deviceId, platform, since: new Date().toISOString() }]
+      : others;
+  });
+}
+
+export function slimOptOuts(): SlimOptOut[] {
+  return loadState().slimOptOuts || [];
 }
 
 export function saveState(state: FleetState): void {

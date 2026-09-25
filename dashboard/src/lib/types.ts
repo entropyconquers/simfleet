@@ -159,6 +159,7 @@ export type Status = {
   };
   emulators: Emulator[];
   android: AndroidToolchain;
+  autoSlim?: AutoSlim;
   agentSessions: AgentSession[];
   simulatorControl: {
     available: boolean;
@@ -219,3 +220,17 @@ export const ANDROID_BUTTONS = [
 
 export const AVDSLIM_INSTALL =
   "brew tap kdbhalala/avdslim https://github.com/kdbhalala/avdslim.git && brew install avdslim";
+
+export type AutoSlimEntry = {
+  deviceId: string;
+  platform: Platform;
+  status: "slimming" | "needs-reboot" | "opted-out" | "unavailable" | "backoff";
+  reason: string;
+};
+
+export type AutoSlim = {
+  enabled: boolean;
+  iosFreshBootSeconds: number;
+  devices: AutoSlimEntry[];
+  optOuts: Array<{ deviceId: string; platform: Platform; since: string }>;
+};

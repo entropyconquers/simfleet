@@ -50,6 +50,21 @@ its own with `simfleet tray`. Left-click opens the dashboard in the default brow
 running devices and the agent sessions attached to each. The helper is compiled from
 `tray/SimFleetTray.swift` with `swiftc` on first use and cached under `~/Library/Caches/simfleet`.
 
+## Always slim
+
+Every device is slim unless someone explicitly asks for stock. `sim boot` and `emu boot` apply and
+verify the slim profile, and the server auto-slims devices booted any other way (Xcode, Android
+Studio, argent, `simctl`) every 15 seconds:
+
+- **Android**: any running emulator without avdslim state is slimmed in place (no reboot).
+- **iOS**: SimSlim needs a reboot, so a simulator is auto-slimmed only within its first 4 minutes of
+  uptime. An older unslimmed simulator is reported as `needs-reboot` in `status.autoSlim` rather than
+  being interrupted mid-test.
+
+Opt out per device with `simfleet sim boot <udid> --stock`, `simfleet emu boot <avd> --stock`, or
+`restore`; `slim` clears the opt-out. Disable auto-slim entirely with `SIM_FLEET_AUTO_SLIM=0` or
+`"autoSlim": false` in the project config.
+
 ## Project configuration
 
 simfleet runs against the nearest directory with `.sim-fleet/project.json`, resolving linked Git

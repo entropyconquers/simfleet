@@ -61,6 +61,8 @@ const SLIM_TONE: Record<SlimLevel, "live" | "caution" | "neutral"> = {
   partial: "caution",
   stock: "caution",
   unknown: "neutral",
+  pending: "neutral",
+  "opted-out": "neutral",
 };
 
 export function SlimChip({ device }: { device: Device }) {

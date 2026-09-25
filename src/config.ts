@@ -42,6 +42,8 @@ export type ProjectConfigFile = {
   stateDirectoryName?: string;
   cacheDirectoryName?: string;
   simslimProfile?: string;
+  /** Slim every booted device automatically unless opted out (default true). */
+  autoSlim?: boolean;
   /** Process names the dashboard treats as "the app" when attributing memory. */
   appProcessNames?: string[];
   metro?: {

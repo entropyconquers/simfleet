@@ -30,6 +30,8 @@ export type WorktreeInfo = {
 };
 
 export type SimulatorInfo = {
+  /** Seconds since the simulator's launchd_sim started; null when shut down. */
+  uptimeSeconds: number | null;
   udid: string;
   name: string;
   runtime: string;
@@ -210,11 +212,12 @@ const simSlimProfilePath = FLEET_CONFIG.simslimProfilePath;
 const simSlimProfileArgs = simSlimProfilePath ? ["--profile", simSlimProfilePath] : [];
 let lastSimSlimInventory: SimSlimInventory | null = null;
 
-export async function getSimSlimInventory(): Promise<SimSlimInventory> {
+async function readSimSlimInventory(): Promise<SimSlimInventory> {
   try {
     const [listResult, versionResult] = await Promise.all([
-      run("simslim", ["list", "--json"], { timeoutMs: 5_000 }),
-      run("simslim", ["version"], { timeoutMs: 5_000 }),
+      // Listing scans every device set and takes ~5 s with dozens of simulators.
+      run("simslim", ["list", "--json"], { timeoutMs: 45_000 }),
+      run("simslim", ["version"], { timeoutMs: 10_000 }),
     ]);
     if (listResult.exitCode !== 0) throw new Error(listResult.stderr || listResult.stdout);
     const devices = JSON.parse(listResult.stdout) as SimSlimDevice[];
@@ -224,7 +227,7 @@ export async function getSimSlimInventory(): Promise<SimSlimInventory> {
         const verification = await run(
           "simslim",
           ["verify", device.udid, ...simSlimProfileArgs, "--json"],
-          { timeoutMs: 5_000 },
+          { timeoutMs: 15_000 },
         );
         if (verification.exitCode !== 0) return { ...device, verified: false };
         try {
@@ -254,6 +257,37 @@ export async function getSimSlimInventory(): Promise<SimSlimInventory> {
       devices: [],
     };
   }
+}
+
+let simSlimInventoryAt = 0;
+let simSlimInventoryRequest: Promise<SimSlimInventory> | null = null;
+
+/**
+ * SimSlim inventory is slow, so status reads a cached copy refreshed in the
+ * background. Only the very first call (or `fresh`) waits for simslim.
+ */
+export async function getSimSlimInventory(
+  options: { maxAgeMs?: number; fresh?: boolean } = {}
+): Promise<SimSlimInventory> {
+  const maxAgeMs = options.maxAgeMs ?? 15_000;
+  const refresh = () => {
+    simSlimInventoryRequest ||= readSimSlimInventory().finally(() => {
+      simSlimInventoryAt = Date.now();
+      simSlimInventoryRequest = null;
+    });
+    return simSlimInventoryRequest;
+  };
+  if (options.fresh || !lastSimSlimInventory) return refresh();
+  if (Date.now() - simSlimInventoryAt > maxAgeMs) void refresh();
+  return lastSimSlimInventory;
+}
+
+/** `ps` etime ([[dd-]hh:]mm:ss) in seconds. */
+export function elapsedSeconds(elapsed: string): number | null {
+  const match = elapsed.trim().match(/^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/);
+  if (!match) return null;
+  const [, days = "0", hours = "0", minutes, seconds] = match;
+  return ((Number(days) * 24 + Number(hours)) * 60 + Number(minutes)) * 60 + Number(seconds);
 }
 
 async function gitBranch(worktreePath: string): Promise<string> {
@@ -340,6 +374,7 @@ export async function getSimulators(processes: ProcessInfo[]): Promise<Simulator
         dataSizeBytes: device.dataPathSize || 0,
         processCount: children.length,
         rssBytes: children.reduce((total, process) => total + process.rssKb * 1024, 0),
+        uptimeSeconds: launchd ? elapsedSeconds(launchd.elapsed) : null,
         topProcesses,
       });
     }
@@ -652,10 +687,18 @@ export async function configureAndLaunch(session: FleetSession): Promise<void> {
 }
 
 export async function simulatorAction(
-  action: "boot" | "shutdown" | "open" | "slim" | "restore",
+  action: "boot" | "boot-stock" | "shutdown" | "open" | "slim" | "restore",
   udid: string,
 ): Promise<void> {
   let result: CommandResult;
+  if (action === "boot-stock") {
+    // Explicitly requested stock boot: no SimSlim, and auto-slim is opted out.
+    result = await run("xcrun", ["simctl", "boot", udid], { timeoutMs: 300_000 });
+    if (result.exitCode !== 0 && !result.stderr.includes("current state: Booted")) {
+      throw new Error(result.stderr.trim() || result.stdout.trim() || "simctl boot failed");
+    }
+    return;
+  }
   if (action === "open") {
     result = await run("open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", udid]);
   } else if (action === "slim" || action === "boot") {

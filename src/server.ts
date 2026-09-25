@@ -15,6 +15,8 @@ import {
   logPathFor,
   saveState,
   sessionPlatform,
+  setSlimOptOut,
+  slimOptOuts,
   updateState,
   type DevicePlatform,
   type FleetSession,
@@ -111,7 +113,7 @@ let sessionMutationQueue: Promise<void> = Promise.resolve();
 const simulatorOperations = new Map<
   string,
   {
-    action: "boot" | "shutdown" | "open" | "slim" | "restore";
+    action: SimulatorAction;
     startedAt: string;
     promise: Promise<void>;
   }
@@ -136,7 +138,7 @@ type LaneLaunchJob = {
   error?: string;
 };
 const laneLaunchJobs = new Map<string, LaneLaunchJob>();
-type SimulatorAction = "boot" | "shutdown" | "open" | "slim" | "restore";
+type SimulatorAction = "boot" | "boot-stock" | "shutdown" | "open" | "slim" | "restore";
 type SimulatorActionJob = {
   id: string;
   simulatorUdid: string;
@@ -305,6 +307,12 @@ async function statusPayload() {
       agents: deviceAgents.get(emulator.avd) || [],
     })),
     android: androidToolchain,
+    autoSlim: {
+      enabled: autoSlimEnabled,
+      iosFreshBootSeconds: IOS_FRESH_BOOT_SECONDS,
+      devices: autoSlimReport,
+      optOuts: slimOptOuts(),
+    },
     agentSessions,
     simulatorControl: {
       available: browserControl.installed,
@@ -372,6 +380,7 @@ async function runSimulatorAction(action: SimulatorAction, udid: string): Promis
   );
   try {
     await operation;
+    recordSlimIntent(udid, "ios", action);
     console.info(
       `${new Date().toISOString()} [sim-fleet] simulator-operation`,
       JSON.stringify({
@@ -401,6 +410,15 @@ async function runSimulatorAction(action: SimulatorAction, udid: string): Promis
   }
 }
 
+/**
+ * Devices are slim by default. Restoring or booting stock records an explicit
+ * opt-out that auto-slim respects; slimming or a normal boot clears it.
+ */
+function recordSlimIntent(deviceId: string, platform: DevicePlatform, action: string): void {
+  if (action === "restore" || action === "boot-stock") setSlimOptOut(deviceId, platform, true);
+  if (action === "slim" || action === "boot") setSlimOptOut(deviceId, platform, false);
+}
+
 async function runEmulatorAction(
   action: EmulatorAction,
   avd: string,
@@ -426,6 +444,7 @@ async function runEmulatorAction(
   const startedAtMs = Date.now();
   try {
     await operation;
+    recordSlimIntent(avd, "android", options.stock && action === "boot" ? "boot-stock" : action);
     console.info(
       `${new Date().toISOString()} [sim-fleet] emulator-operation`,
       JSON.stringify({ event: "completed", avd, action, durationMs: Date.now() - startedAtMs }),
@@ -1230,6 +1249,7 @@ const server = Bun.serve<ControlSocketData>({
             options = {
               headless: typeof input.headless === "boolean" ? input.headless : undefined,
               cold: input.cold === true,
+              stock: input.stock === true,
             };
           }
           recordTouch(request, avd, "android");
@@ -1291,7 +1311,11 @@ const server = Bun.serve<ControlSocketData>({
       );
       if (request.method === "POST" && simulatorMatch) {
         const simulatorUdid = simulatorMatch[1];
-        const action = simulatorMatch[2] as SimulatorAction;
+        let action = simulatorMatch[2].toLowerCase() as SimulatorAction;
+        if (action === "boot" && request.body) {
+          const input = await body(request).catch(() => ({}) as Record<string, unknown>);
+          if (input.stock === true) action = "boot-stock";
+        }
         recordTouch(request, simulatorUdid, "ios");
         const id = `sim-${action}-${simulatorUdid.slice(0, 8)}-${Date.now().toString(36)}`;
         const job: SimulatorActionJob = {
@@ -1430,6 +1454,113 @@ console.log(`${PROJECT_CONFIG.projectName} Sim Fleet: http://${server.hostname}:
 console.log(`Simulator transport: ${browserControl.url}`);
 console.log(`Repository: ${repoRoot}`);
 console.log(`State: ${FLEET_CONFIG.stateDirectory}`);
+
+/**
+ * Auto-slim: every device is slim unless someone explicitly opted it out.
+ * Android slims live, so any running unslimmed emulator is slimmed. iOS
+ * slimming reboots the simulator, so only fresh boots (for example from Xcode
+ * or argent) are slimmed automatically; long-running ones are reported as
+ * needing a reboot rather than being interrupted mid-test.
+ */
+type AutoSlimEntry = {
+  deviceId: string;
+  platform: DevicePlatform;
+  status: "slimming" | "needs-reboot" | "opted-out" | "unavailable" | "backoff";
+  reason: string;
+};
+const autoSlimEnabled =
+  process.env.SIM_FLEET_AUTO_SLIM !== "0" && PROJECT_CONFIG.autoSlim !== false;
+const IOS_FRESH_BOOT_SECONDS = 240;
+const AUTO_SLIM_RETRY_MS = 10 * 60 * 1000;
+const autoSlimAttempts = new Map<string, number>();
+let autoSlimReport: AutoSlimEntry[] = [];
+let autoSlimRunning = false;
+
+function autoSlimLaunch(
+  deviceId: string,
+  platform: DevicePlatform,
+  start: () => Promise<void>
+): AutoSlimEntry["status"] {
+  const last = autoSlimAttempts.get(deviceId);
+  if (last && Date.now() - last < AUTO_SLIM_RETRY_MS) return "backoff";
+  autoSlimAttempts.set(deviceId, Date.now());
+  console.info(
+    `${new Date().toISOString()} [sim-fleet] auto-slim`,
+    JSON.stringify({ event: "started", deviceId, platform })
+  );
+  void start().then(
+    () => autoSlimAttempts.delete(deviceId),
+    (error) =>
+      console.error(
+        `${new Date().toISOString()} [sim-fleet] auto-slim`,
+        JSON.stringify({ event: "failed", deviceId, platform, error: String(error) })
+      )
+  );
+  return "slimming";
+}
+
+async function autoSlimTick(): Promise<void> {
+  if (autoSlimRunning) return;
+  autoSlimRunning = true;
+  try {
+    const optedOut = new Set(slimOptOuts().map((entry) => entry.deviceId));
+    const processes = await getProcesses();
+    const [simulators, simSlim, emulators, toolchain] = await Promise.all([
+      getSimulators(processes),
+      getSimSlimInventory(),
+      getEmulators(processes).catch(() => []),
+      getAndroidToolchain(),
+    ]);
+    const report: AutoSlimEntry[] = [];
+
+    for (const simulator of simulators) {
+      if (simulator.state !== "Booted" || simulatorOperations.has(simulator.udid)) continue;
+      const slim = simSlim.devices.find((device) => device.udid === simulator.udid);
+      if (!simSlim.installed || simSlim.stale || !slim || (slim.managedDisabled || 0) > 0) continue;
+      const entry = { deviceId: simulator.udid, platform: "ios" as const };
+      if (optedOut.has(simulator.udid)) {
+        report.push({ ...entry, status: "opted-out", reason: "restored or booted stock on request" });
+      } else if (simulator.uptimeSeconds !== null && simulator.uptimeSeconds <= IOS_FRESH_BOOT_SECONDS) {
+        const status = autoSlimLaunch(simulator.udid, "ios", () =>
+          runSimulatorAction("slim", simulator.udid)
+        );
+        report.push({ ...entry, status, reason: "booted without SimSlim" });
+      } else {
+        report.push({
+          ...entry,
+          status: "needs-reboot",
+          reason: "running unslimmed; slimming reboots it, so it is not interrupted automatically",
+        });
+      }
+    }
+
+    for (const emulator of emulators) {
+      if (emulator.state !== "Booted" || !emulator.avdSlim || emulator.avdSlim.slimmed) continue;
+      if (emulatorOperations.has(emulator.avd)) continue;
+      const entry = { deviceId: emulator.avd, platform: "android" as const };
+      if (optedOut.has(emulator.avd)) {
+        report.push({ ...entry, status: "opted-out", reason: "restored or booted stock on request" });
+      } else if (!toolchain.avdslim.installed) {
+        report.push({ ...entry, status: "unavailable", reason: "avdslim is not installed" });
+      } else {
+        const status = autoSlimLaunch(emulator.avd, "android", () =>
+          runEmulatorAction("slim", emulator.avd, {})
+        );
+        report.push({ ...entry, status, reason: "running without avdslim" });
+      }
+    }
+    autoSlimReport = report;
+  } catch (error) {
+    console.error("[sim-fleet] auto-slim tick failed", error);
+  } finally {
+    autoSlimRunning = false;
+  }
+}
+
+if (autoSlimEnabled) {
+  void autoSlimTick();
+  setInterval(() => void autoSlimTick(), 15_000);
+}
 
 // The menu-bar icon follows the server's lifetime; SIM_FLEET_TRAY=0 disables it.
 if (process.platform === "darwin" && process.env.SIM_FLEET_TRAY !== "0") {

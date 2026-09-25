@@ -1,7 +1,7 @@
 import { bytes, runtimeLabel } from "./format";
-import type { DeviceAgent, Emulator, Lane, Operation, Platform, Simulator, Status } from "./types";
+import type { AutoSlimEntry, DeviceAgent, Emulator, Lane, Operation, Platform, Simulator, Status } from "./types";
 
-export type SlimLevel = "verified" | "partial" | "stock" | "tuned" | "unknown";
+export type SlimLevel = "verified" | "partial" | "stock" | "tuned" | "unknown" | "pending" | "opted-out";
 
 /** One row on the wall: an iOS simulator or an Android emulator in a common shape. */
 export type Device = {
@@ -23,6 +23,30 @@ export type Device = {
 };
 
 const TRANSITIONAL_STATES = new Set(["Booting", "Shutting Down", "Offline"]);
+
+/**
+ * The fleet slims every device automatically; this explains the exceptions:
+ * an in-flight auto-slim, an iOS device that would need a reboot, or an
+ * explicit stock opt-out.
+ */
+function autoSlimOverride(entry: AutoSlimEntry | undefined, slimmed: boolean): Device["slim"] | null {
+  if (!entry || slimmed) return null;
+  switch (entry.status) {
+    case "slimming":
+    case "backoff":
+      return { level: "pending", label: "Slimming", detail: `Auto-slim is applying: ${entry.reason}` };
+    case "needs-reboot":
+      return {
+        level: "stock",
+        label: "Unslimmed",
+        detail: "Booted outside the fleet and running for a while; Slim services reboots it into the slim profile",
+      };
+    case "opted-out":
+      return { level: "opted-out", label: "Stock by request", detail: "Restored or booted stock explicitly; auto-slim skips it until slimmed again" };
+    case "unavailable":
+      return { level: "stock", label: "Unslimmed", detail: entry.reason };
+  }
+}
 
 function slimForSimulator(sim: Simulator): Device["slim"] {
   const disabled = sim.simSlim?.managedDisabled || 0;
@@ -61,6 +85,7 @@ function slimForEmulator(emu: Emulator): Device["slim"] {
 
 export function toDevices(status: Status): Device[] {
   const lanes = new Map(status.sessions.map((lane) => [lane.simulatorUdid, lane]));
+  const autoSlim = new Map((status.autoSlim?.devices ?? []).map((entry) => [entry.deviceId, entry]));
   const ios: Device[] = status.simulators.map((sim) => {
     const live = sim.state === "Booted";
     const footprint = sim.simSlim?.memory?.bytes ?? null;
@@ -82,7 +107,9 @@ export function toDevices(status: Status): Device[] {
           ? "Physical footprint of the whole simulator process tree"
           : "Summed resident set size of simulator processes"
         : "Data on disk",
-      slim: slimForSimulator(sim),
+      slim:
+        (live && autoSlimOverride(autoSlim.get(sim.udid), Boolean(sim.simSlim?.verified))) ||
+        slimForSimulator(sim),
       raw: sim,
     };
   });
@@ -107,7 +134,9 @@ export function toDevices(status: Status): Device[] {
           ? "Physical footprint of the emulator process"
           : "Resident set size of the emulator process"
         : "Configured RAM for this AVD",
-      slim: slimForEmulator(emu),
+      slim:
+        (live && autoSlimOverride(autoSlim.get(emu.avd), Boolean(emu.avdSlim?.slimmed))) ||
+        slimForEmulator(emu),
       raw: emu,
     };
   });

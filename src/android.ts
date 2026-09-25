@@ -51,7 +51,7 @@ export type EmulatorInfo = {
 };
 
 export type EmulatorAction = "boot" | "slim" | "restore" | "shutdown" | "tune";
-export type EmulatorActionOptions = { headless?: boolean; cold?: boolean };
+export type EmulatorActionOptions = { headless?: boolean; cold?: boolean; stock?: boolean };
 
 export type AndroidInput =
   | {
@@ -463,6 +463,7 @@ export async function emulatorAction(
 
   const avdslim = avdslimOrThrow(toolchain);
   if (serial) {
+    if (options.stock) return;
     // Already running: slim and verify in place, exactly like a fresh boot would.
     await slimAndVerify(
       avdslim,
@@ -476,11 +477,13 @@ export async function emulatorAction(
   // The fleet is browser-first like the headless iOS transport; a window is opt-in.
   if (options.headless !== false) args.push("--headless");
   if (options.cold) args.push("--cold");
+  if (options.stock) args.push("--no-slim");
   const started = await run(avdslim, args, { timeoutMs: 420_000 });
   if (started.exitCode !== 0) throw commandError(started, "avdslim start failed");
   // `avdslim start` exits 0 when a slow boot outlives its own wait, so the
   // fleet confirms boot and slim state itself.
   const bootedSerial = await waitForBoot(toolchain.adbPath, avd, 240_000);
+  if (options.stock) return;
   await slimAndVerify(avdslim, toolchain.adbPath, bootedSerial);
 }
 

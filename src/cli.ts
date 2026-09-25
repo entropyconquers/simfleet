@@ -32,7 +32,7 @@ function usage(): never {
   simfleet claim <deviceId> [note]    attach this agent session to a device
   simfleet release <deviceId>
   simfleet emu list
-  simfleet emu <boot|slim|restore|shutdown|tune> <avd> [--window] [--cold]
+  simfleet emu <boot|slim|restore|shutdown|tune> <avd> [--window] [--cold] [--stock]
   simfleet emu ui <avd> [x y]
   simfleet emu screenshot <avd> <out.png>
   simfleet emu tap|double-tap|long-press <avd> <x> <y>
@@ -49,7 +49,7 @@ function usage(): never {
   simfleet sim list
   simfleet sim creation-options
   simfleet sim create <name> <device-type-id> <runtime-id>
-  simfleet sim <boot|slim|restore|shutdown|open> <udid>
+  simfleet sim <boot|slim|restore|shutdown|open> <udid>   (boot is slim; --stock opts out)
   simfleet sim ui <udid> [x y]
   simfleet sim tap <udid> <x> <y> [width height]
   simfleet sim swipe <udid> <startX> <startY> <endX> <endY> [width height]
@@ -169,6 +169,7 @@ async function main(): Promise<unknown> {
         await post(`${base}/${command}`, {
           headless: !emuArgs.includes("--window"),
           cold: emuArgs.includes("--cold"),
+          stock: emuArgs.includes("--stock"),
         }),
         `Emulator ${command} failed`,
         2000,
@@ -330,7 +331,10 @@ async function main(): Promise<unknown> {
   if (!udid) usage();
   if (["boot", "slim", "restore", "shutdown", "open"].includes(command)) {
     return waitForJob(
-      await post(`/api/v1/simulators/${udid}/${command}`),
+      await post(
+        `/api/v1/simulators/${udid}/${command}`,
+        command === "boot" && inputArgs.includes("--stock") ? { stock: true } : undefined,
+      ),
       `Simulator ${command} failed`,
     );
   }
