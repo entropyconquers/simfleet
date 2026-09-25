@@ -125,3 +125,8 @@ export function streamUrl(udid: string): string {
   const scheme = location.protocol === "https:" ? "wss:" : "ws:";
   return `${scheme}//${location.host}/api/v1/simulators/${encodeURIComponent(udid)}/stream?format=mjpeg&version=v2`;
 }
+
+export function androidStreamUrl(avd: string): string {
+  const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+  return `${scheme}//${location.host}/api/v1/emulators/${encodeURIComponent(avd)}/stream`;
+}

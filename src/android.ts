@@ -13,6 +13,7 @@ import { run } from "./system";
 
 const AVDSLIM_STATE_FILE = "/data/local/tmp/avdslim_state.json";
 const AVD_NAME_PATTERN = /^[A-Za-z0-9._-]{1,120}$/;
+const DEFAULT_GUEST_RAM_MB = Number(process.env.SIM_FLEET_ANDROID_RAM_MB || 2048);
 
 type ProcessLike = { pid: number; rssKb: number; command: string };
 
@@ -81,7 +82,7 @@ export type AndroidInput =
   | { kind: "open-url"; url: string }
   | { kind: "dev-menu" };
 
-const ANDROID_BUTTON_KEYCODES = {
+export const ANDROID_BUTTON_KEYCODES = {
   home: 3,
   back: 4,
   "app-switcher": 187,
@@ -95,7 +96,7 @@ export type AndroidButton = keyof typeof ANDROID_BUTTON_KEYCODES;
 export const ANDROID_BUTTONS = Object.keys(ANDROID_BUTTON_KEYCODES) as AndroidButton[];
 
 // W3C KeyboardEvent.code values the iOS API already accepts, mapped to keycodes.
-const W3C_KEYCODES: Record<string, number> = {
+export const W3C_KEYCODES: Record<string, number> = {
   Enter: 66,
   NumpadEnter: 66,
   Backspace: 67,
@@ -384,7 +385,7 @@ export async function serialForAvd(avd: string): Promise<string | null> {
   return live?.serial || null;
 }
 
-async function requireSerial(avd: string): Promise<{ adbPath: string; serial: string }> {
+export async function requireSerial(avd: string): Promise<{ adbPath: string; serial: string }> {
   const toolchain = await toolchainOrThrow();
   const live = (await runningEmulators(toolchain.adbPath)).find(
     (candidate) => candidate.avd === avd,
@@ -473,7 +474,11 @@ export async function emulatorAction(
     return;
   }
 
-  const args = ["start", avd, ...(PROJECT_CONFIG.android?.avdslimArgs || [])];
+  const extraArgs = PROJECT_CONFIG.android?.avdslimArgs || [];
+  const args = ["start", avd, ...extraArgs];
+  // avdslim defaults to 1536 MB, which leaves API 34+ images swapping ~600 MB
+  // to zram and janky to drive; 2048 MB keeps them responsive.
+  if (!extraArgs.some((arg) => arg.startsWith("--ram="))) args.push(`--ram=${DEFAULT_GUEST_RAM_MB}`);
   // The fleet is browser-first like the headless iOS transport; a window is opt-in.
   if (options.headless !== false) args.push("--headless");
   if (options.cold) args.push("--cold");

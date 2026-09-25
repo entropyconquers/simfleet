@@ -40,6 +40,14 @@ import {
   type EmulatorActionOptions,
 } from "./android";
 import {
+  androidStreamAvailable,
+  attachAndroidViewer,
+  closeAndroidStream,
+  detachAndroidViewer,
+  handleAndroidViewerMessage,
+  type StreamViewer,
+} from "./android-stream";
+import {
   AGENT_HEADER,
   SESSION_HEADER,
   attributeAgents,
@@ -432,6 +440,7 @@ async function runEmulatorAction(
       409,
     );
   }
+  if (action === "shutdown") closeAndroidStream(avd);
   const needsBootSlot = action === "boot" || action === "slim";
   const operation = needsBootSlot
     ? (emulatorBootQueue = emulatorBootQueue.then(
@@ -979,6 +988,7 @@ function capabilitiesPayload() {
       emulators: "/api/v1/emulators/{avd}",
       emulatorActionJob: "/api/v1/emulators/jobs/{jobId}",
       emulatorScreenshot: "/api/v1/emulators/{avd}/screenshot",
+      emulatorStream: "ws /api/v1/emulators/{avd}/stream (H.264 via scrcpy; JSON touch/scroll/key/text/button in)",
       agents: "/api/v1/agents",
       deviceClaim: "/api/v1/devices/{deviceId}/claim",
     },
@@ -1000,11 +1010,16 @@ async function proxyBrowserControl(request: Request, target: URL): Promise<Respo
   return new Response(upstream.body, { status: upstream.status, headers });
 }
 
-type ControlSocketData = {
-  upstreamUrl: string;
-  upstream?: WebSocket;
-  pending: Array<string | Uint8Array>;
-};
+type ControlSocketData =
+  | {
+      kind: "ios";
+      upstreamUrl: string;
+      upstream?: WebSocket;
+      pending: Array<string | Uint8Array>;
+    }
+  | { kind: "android"; avd: string; viewer?: StreamViewer };
+
+const ANDROID_STREAM_PATH = /^\/api\/v1\/emulators\/([^/]+)\/stream$/;
 
 const server = Bun.serve<ControlSocketData>({
   hostname: FLEET_CONFIG.host,
@@ -1013,12 +1028,23 @@ const server = Bun.serve<ControlSocketData>({
   async fetch(request) {
     const url = new URL(request.url);
     try {
+      const androidStream = url.pathname.match(ANDROID_STREAM_PATH);
+      if (androidStream && request.headers.get("upgrade")?.toLowerCase() === "websocket") {
+        const avd = decodeURIComponent(androidStream[1]!);
+        if (!isAvdName(avd)) return errorResponse("Invalid AVD name", 400);
+        if (!(await androidStreamAvailable())) {
+          return errorResponse("scrcpy is not installed; install it with `brew install scrcpy`", 501);
+        }
+        recordTouch(request, avd, "android");
+        if (server.upgrade(request, { data: { kind: "android", avd } })) return;
+        return errorResponse("Could not open emulator stream WebSocket", 502);
+      }
       const controlTarget = browserControlTarget(url);
       if (controlTarget && request.headers.get("upgrade")?.toLowerCase() === "websocket") {
         controlTarget.protocol = controlTarget.protocol === "https:" ? "wss:" : "ws:";
         if (
           server.upgrade(request, {
-            data: { upstreamUrl: controlTarget.toString(), pending: [] },
+            data: { kind: "ios", upstreamUrl: controlTarget.toString(), pending: [] },
           })
         ) {
           return;
@@ -1426,17 +1452,35 @@ const server = Bun.serve<ControlSocketData>({
   },
   websocket: {
     open(socket) {
-      const upstream = new WebSocket(socket.data.upstreamUrl);
+      if (socket.data.kind === "android") {
+        const { avd } = socket.data;
+        const viewer: StreamViewer = {
+          send: (data) => void socket.send(data),
+          close: (code, reason) => socket.close(code, reason),
+        };
+        socket.data.viewer = viewer;
+        attachAndroidViewer(avd, viewer).catch((error: Error) => {
+          socket.send(JSON.stringify({ type: "error", error: error.message }));
+          socket.close(1011, error.message.slice(0, 120));
+        });
+        return;
+      }
+      const data = socket.data;
+      const upstream = new WebSocket(data.upstreamUrl);
       upstream.binaryType = "arraybuffer";
-      socket.data.upstream = upstream;
+      data.upstream = upstream;
       upstream.onopen = () => {
-        for (const message of socket.data.pending.splice(0)) upstream.send(message);
+        for (const message of data.pending.splice(0)) upstream.send(message);
       };
       upstream.onmessage = (event) => socket.send(event.data as string | ArrayBuffer);
       upstream.onclose = () => socket.close();
       upstream.onerror = () => socket.close(1011, "Browser-control upstream failed");
     },
     message(socket, message) {
+      if (socket.data.kind === "android") {
+        if (typeof message === "string") handleAndroidViewerMessage(socket.data.avd, message);
+        return;
+      }
       const value = typeof message === "string" ? message : new Uint8Array(message);
       if (socket.data.upstream?.readyState === WebSocket.OPEN) {
         socket.data.upstream.send(value);
@@ -1445,6 +1489,10 @@ const server = Bun.serve<ControlSocketData>({
       }
     },
     close(socket) {
+      if (socket.data.kind === "android") {
+        if (socket.data.viewer) detachAndroidViewer(socket.data.avd, socket.data.viewer);
+        return;
+      }
       socket.data.upstream?.close();
     },
   },

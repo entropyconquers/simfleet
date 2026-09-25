@@ -87,7 +87,7 @@ export function FocusView({ deviceId }: { deviceId: string }) {
           ? `${fps} fps`
           : streamStatus
       : streamStatus === "live"
-        ? "Polling screenshots"
+        ? "Live video"
         : streamStatus;
 
   return (

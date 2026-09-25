@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { AndroidPoller } from "@/lib/android-poller";
+import { AndroidStream } from "@/lib/android-stream";
 import type { Device } from "@/lib/devices";
 import { IosStream, type StreamStatus } from "@/lib/ios-stream";
 
@@ -81,8 +81,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
 ) {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const engineRef = useRef<IosStream | AndroidPoller | null>(null);
+  const engineRef = useRef<IosStream | AndroidStream | null>(null);
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [hasFrame, setHasFrame] = useState(false);
   const [frame, setFrame] = useState(() => defaultFrame(device));
@@ -112,7 +111,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
 
   // One engine per mounted screen. Unmounting (filtered out, other view) tears it down.
   useEffect(() => {
-    const engine: IosStream | AndroidPoller = isIos
+    const engine: IosStream | AndroidStream = isIos
       ? new IosStream(device.id, canvasRef.current!, {
           onStatus: (next) => {
             setStatus(next);
@@ -132,7 +131,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
             }
           },
         })
-      : new AndroidPoller(device.id, imageRef.current!, {
+      : new AndroidStream(device.id, canvasRef.current!, {
           onStatus: (next) => {
             setStatus(next);
             hooks.current.onStatus?.(next);
@@ -141,6 +140,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
             setFrame((current) => (current.width === width && current.height === height ? current : { width, height }));
             if (first) setHasFrame(true);
           },
+          onStats: (fps) => hooks.current.onStats?.(fps),
         });
     engineRef.current = engine;
     return () => {
@@ -199,7 +199,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
           anchor.click();
           anchor.remove();
         };
-        if (isIos) {
+        {
           const canvas = canvasRef.current;
           if (!canvas || !hasFrame) {
             toast.error("No frame to save yet");
@@ -211,18 +211,11 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
             download(url);
             setTimeout(() => URL.revokeObjectURL(url), 2000);
           }, "image/png");
-        } else {
-          const image = imageRef.current;
-          if (!image?.src || !hasFrame) {
-            toast.error("No frame to save yet");
-            return;
-          }
-          download(image.src);
         }
         toast.success("Screenshot saved");
       },
     }),
-    [device.name, hasFrame, isIos],
+    [device.name, hasFrame],
   );
 
   const send = useCallback(
@@ -235,7 +228,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
   );
 
   const toFrame = (event: { clientX: number; clientY: number }) => {
-    const target = (isIos ? canvasRef.current : imageRef.current) as HTMLElement | null;
+    const target = canvasRef.current;
     const rect = target?.getBoundingClientRect();
     if (!rect || !rect.width) return null;
     return {
@@ -246,14 +239,30 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
     };
   };
 
+  /** The Android video stream takes raw touch down/move/up; everything else uses gestures. */
+  const directStream = () => {
+    const engine = engineRef.current;
+    return engine instanceof AndroidStream && engine.canControl ? engine : null;
+  };
+
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!interactive || !live || !hasFrame || event.button !== 0) return;
     const point = toFrame(event);
     if (!point) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     pointer.current = { x: point.x, y: point.y, at: performance.now(), id: event.pointerId };
+    directStream()?.touch("down", point.x / point.width, point.y / point.height);
     boxRef.current?.focus();
     setControlling(true);
+  };
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = pointer.current;
+    if (!start || start.id !== event.pointerId) return;
+    const stream = directStream();
+    if (!stream) return;
+    const point = toFrame(event);
+    if (point) stream.touch("move", point.x / point.width, point.y / point.height);
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -261,6 +270,12 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
     pointer.current = null;
     if (!start || start.id !== event.pointerId) return;
     const end = toFrame(event);
+    const stream = directStream();
+    if (stream) {
+      const point = end ?? { x: start.x, y: start.y, width: 1, height: 1 };
+      stream.touch("up", point.x / point.width, point.y / point.height);
+      return;
+    }
     if (!end) return;
     const distance = Math.hypot(end.x - start.x, end.y - start.y);
     const held = performance.now() - start.at;
@@ -286,6 +301,15 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
 
   const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     if (!interactive || !live || !hasFrame || !controlling) return;
+    const stream = directStream();
+    if (stream) {
+      const point = toFrame(event);
+      if (!point) return;
+      // Trackpads report pixels; scrcpy expects wheel notches (±16 max).
+      const scale = event.deltaMode === 1 ? 1 : 1 / 40;
+      stream.scroll(point.x / point.width, point.y / point.height, -event.deltaX * scale, -event.deltaY * scale);
+      return;
+    }
     const now = performance.now();
     if (now - wheelAt.current < 220) return;
     wheelAt.current = now;
@@ -330,12 +354,15 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
     }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === "Tab") return; // Keep the page navigable.
+    const stream = directStream();
     if (KEY_CODES.has(event.code)) {
       event.preventDefault();
-      send({ kind: "key", code: event.code });
+      if (stream) stream.key(event.code);
+      else send({ kind: "key", code: event.code });
     } else if (PRINTABLE.test(event.key)) {
       event.preventDefault();
-      send({ kind: "text", text: event.key });
+      if (stream) stream.text(event.key);
+      else send({ kind: "text", text: event.key });
     }
   };
 
@@ -385,35 +412,29 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
         "relative isolate overflow-hidden outline-none select-none",
         mode === "stage" ? "bg-muted/50" : "bg-screen",
         "focus-visible:ring-3 focus-visible:ring-ring/60",
-        interactive && live && "cursor-crosshair",
+        interactive && live && "cursor-crosshair touch-none",
         !interactive && onActivate && "cursor-pointer",
         controlling && "ring-2 ring-primary ring-inset",
         className,
       )}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
-      onPointerCancel={() => (pointer.current = null)}
+      onPointerMove={onPointerMove}
+      onPointerCancel={() => {
+        if (pointer.current) directStream()?.touch("cancel", 0, 0);
+        pointer.current = null;
+      }}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
       onBlur={() => setControlling(false)}
       onClick={!interactive && onActivate ? onActivate : undefined}
     >
-      {isIos ? (
-        <canvas
-          ref={canvasRef}
-          aria-hidden
-          className={cn("absolute screen-edge transition-opacity duration-300", hasFrame ? "opacity-100" : "opacity-0")}
-          style={{ width: fit.width, height: fit.height, left: fit.left, top: fit.top, borderRadius: clip }}
-        />
-      ) : (
-        <img
-          ref={imageRef}
-          alt=""
-          draggable={false}
-          className={cn("absolute screen-edge transition-opacity duration-300", hasFrame ? "opacity-100" : "opacity-0")}
-          style={{ width: fit.width, height: fit.height, left: fit.left, top: fit.top, borderRadius: clip }}
-        />
-      )}
+      <canvas
+        ref={canvasRef}
+        aria-hidden
+        className={cn("absolute screen-edge transition-opacity duration-300", hasFrame ? "opacity-100" : "opacity-0")}
+        style={{ width: fit.width, height: fit.height, left: fit.left, top: fit.top, borderRadius: clip }}
+      />
       {overlay ? (
         <div className={cn("absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center text-xs", mode === "stage" ? "text-muted-foreground" : "text-white/70")}>
           <div className="flex items-center gap-1.5">
@@ -429,8 +450,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
               onClick={(event) => {
                 event.stopPropagation();
                 const engine = engineRef.current;
-                if (engine instanceof IosStream) engine.retryNow();
-                else engine?.refresh();
+                engine?.retryNow();
               }}
             >
               <RefreshCwIcon data-icon="inline-start" />

@@ -8,8 +8,11 @@ each device.
 - **iOS**: [SimSlim](https://github.com/MobAI-App/simslim) trims CoreSimulator services
   (~3.8 GB → ~1.3 GB per booted simulator); [Baguette](https://github.com/tddworks/baguette) streams
   frames and injects input.
-- **Android**: [avdslim](https://github.com/kdbhalala/avdslim) boots AVDs with `-lowram` and host GPU,
-  disables ~45 background packages, and verifies the slim state; the fleet drives the device over adb.
+- **Android**: [avdslim](https://github.com/kdbhalala/avdslim) boots AVDs with `-lowram`, host GPU, and
+  2 GB of guest RAM (`SIM_FLEET_ANDROID_RAM_MB`), disables ~45 background packages, and verifies the
+  slim state. The dashboard streams live H.264 through [scrcpy](https://github.com/Genymobile/scrcpy)'s
+  device server (WebCodecs in the browser) and sends touch down/move/up on the same socket, falling
+  back to screenshot polling when scrcpy is not installed.
 - **Agents**: every CLI call from a Claude Code or Codex session is attributed to the device it
   touches; sessions can also claim devices explicitly.
 
@@ -23,7 +26,7 @@ Requires macOS and Bun ≥ 1.1. Optional host tools:
 
 ```bash
 brew install mobai-app/tap/simslim baguette watchman                                   # iOS
-brew tap kdbhalala/avdslim https://github.com/kdbhalala/avdslim.git && brew install avdslim   # Android
+brew tap kdbhalala/avdslim https://github.com/kdbhalala/avdslim.git && brew install avdslim scrcpy   # Android
 ```
 
 Android also needs the SDK platform-tools and emulator (`ANDROID_HOME`, or `~/Library/Android/sdk`).
