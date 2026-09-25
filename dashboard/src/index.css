@@ -1,0 +1,205 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-sidebar: var(--card);
+  --color-sidebar-foreground: var(--card-foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
+  --color-sidebar-accent: var(--accent);
+  --color-sidebar-accent-foreground: var(--accent-foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-chart-1: var(--live);
+  --color-chart-2: var(--caution);
+  --color-chart-3: var(--codex);
+  --color-chart-4: var(--claude);
+  --color-chart-5: var(--muted-foreground);
+  /* Fleet semantics */
+  --color-live: var(--live);
+  --color-caution: var(--caution);
+  --color-claude: var(--claude);
+  --color-codex: var(--codex);
+  --color-android: var(--android);
+  --color-ios: var(--ios);
+  --color-screen: var(--screen);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(0.975 0.004 250);
+  --foreground: oklch(0.21 0.02 260);
+  --card: oklch(0.995 0.002 250);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.995 0.002 250);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.42 0.09 200);
+  --primary-foreground: oklch(0.985 0.01 200);
+  --secondary: oklch(0.94 0.008 250);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.945 0.006 250);
+  --muted-foreground: oklch(0.47 0.02 255);
+  --accent: oklch(0.925 0.01 250);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.53 0.2 27);
+  --border: oklch(0.885 0.008 250);
+  --input: oklch(0.86 0.01 250);
+  --ring: oklch(0.55 0.12 200);
+  --live: oklch(0.5 0.15 150);
+  --caution: oklch(0.55 0.13 70);
+  --claude: oklch(0.52 0.13 50);
+  --codex: oklch(0.5 0.16 290);
+  --android: oklch(0.5 0.13 145);
+  --ios: oklch(0.45 0.03 255);
+  --screen: oklch(0.2 0.01 255);
+  --radius: 0.625rem;
+  --tile: 240px;
+  --edge: oklch(0 0 0 / 0.1);
+  color-scheme: light;
+}
+
+.dark {
+  --background: oklch(0.165 0.01 255);
+  --foreground: oklch(0.93 0.01 250);
+  --card: oklch(0.205 0.012 255);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.22 0.012 255);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.78 0.11 195);
+  --primary-foreground: oklch(0.17 0.03 200);
+  --secondary: oklch(0.265 0.012 255);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.25 0.012 255);
+  --muted-foreground: oklch(0.71 0.015 250);
+  --accent: oklch(0.285 0.014 255);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.72 0.17 25);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.72 0.11 195);
+  --live: oklch(0.76 0.16 150);
+  --caution: oklch(0.8 0.14 80);
+  --claude: oklch(0.76 0.12 60);
+  --codex: oklch(0.75 0.12 290);
+  --android: oklch(0.75 0.15 145);
+  --ios: oklch(0.78 0.02 255);
+  --screen: oklch(0.12 0.008 255);
+  --edge: oklch(1 0 0 / 0.1);
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 25%, transparent);
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .screen-edge {
+    outline: 1px solid var(--edge);
+    outline-offset: -1px;
+  }
+  .press:active:not(:disabled) {
+    scale: 0.96;
+  }
+  .press {
+    transition-property: scale, background-color, color, border-color;
+    transition-duration: 120ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+/* Theme switches snap instead of smearing: main.tsx toggles this class for a frame. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Live indicator: a breathing dot, only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-live {
+    animation: pulse-live 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse-live {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--live) 45%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--live) 0%, transparent);
+    }
+  }
+}

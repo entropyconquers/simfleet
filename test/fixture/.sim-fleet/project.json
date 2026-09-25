@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "projectName": "fixture",
+  "nativeShells": {
+    "debug": { "appName": "Fixture Dev", "bundleId": "com.example.fixture.dev", "scheme": "fixture-dev" },
+    "release": { "appName": "Fixture", "bundleId": "com.example.fixture", "scheme": "fixture", "androidPackage": "com.example.fixture.android" }
+  },
+  "environments": {
+    "development": { "portRange": [8100, 8199] },
+    "staging": { "portRange": [8200, 8299] },
+    "preprod": { "portRange": [8300, 8399] },
+    "production": { "portRange": [8400, 8499] }
+  },
+  "metro": {
+    "env": { "APP_ENV": "{environment}", "METRO_PORT_ECHO": "{port}" },
+    "modeEnv": { "debug": { "APP_VARIANT": "dev" }, "release": { "APP_VARIANT": "prod" } }
+  }
+}

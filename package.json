@@ -1,0 +1,51 @@
+{
+  "name": "simfleet",
+  "version": "0.1.0",
+  "description": "Run parallel React Native worktrees on slimmed iOS simulators and Android emulators, with one dashboard, one agent API, and leased Metro ports.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "simfleet": "./bin/simfleet.ts"
+  },
+  "exports": {
+    "./build-cache": "./src/local-build-cache.cjs",
+    "./fingerprint": "./src/native-fingerprint.cjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "tray",
+    "dist/dashboard",
+    "README.md"
+  ],
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "os": [
+    "darwin"
+  ],
+  "scripts": {
+    "serve": "bun bin/simfleet.ts serve",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun run build:dashboard",
+    "build:dashboard": "cd dashboard && bun install && bun run build",
+    "prepublishOnly": "bun run typecheck && bun test && bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "ios-simulator",
+    "android-emulator",
+    "metro",
+    "worktree",
+    "simslim",
+    "avdslim",
+    "agents"
+  ]
+}
