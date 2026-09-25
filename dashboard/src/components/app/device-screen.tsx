@@ -382,7 +382,8 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
       tabIndex={0}
       data-controlling={controlling || undefined}
       className={cn(
-        "relative isolate overflow-hidden bg-screen outline-none select-none",
+        "relative isolate overflow-hidden outline-none select-none",
+        mode === "stage" ? "bg-muted/50" : "bg-screen",
         "focus-visible:ring-3 focus-visible:ring-ring/60",
         interactive && live && "cursor-crosshair",
         !interactive && onActivate && "cursor-pointer",
@@ -414,7 +415,7 @@ export const DeviceScreen = forwardRef<ScreenHandle, Props>(function DeviceScree
         />
       )}
       {overlay ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center text-xs text-white/70">
+        <div className={cn("absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center text-xs", mode === "stage" ? "text-muted-foreground" : "text-white/70")}>
           <div className="flex items-center gap-1.5">
             {overlay.icon}
             <span>{overlay.text}</span>

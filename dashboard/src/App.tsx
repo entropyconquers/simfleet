@@ -1,122 +1,142 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AgentsView } from "@/components/app/agents-view";
+import { CommandBar } from "@/components/app/command-bar";
+import { DeviceWall } from "@/components/app/device-wall";
+import { FilterRail } from "@/components/app/filter-rail";
+import { FocusView } from "@/components/app/focus-view";
+import { HostView } from "@/components/app/host-view";
+import { ShortcutsDialog } from "@/components/app/shortcuts-dialog";
+import { StartLaneDialog } from "@/components/app/start-lane-dialog";
+import { OfflineScreen, StatusBanner } from "@/components/app/status-banner";
+import { announcer } from "@/lib/announce";
+import { fleet } from "@/lib/fleet-store";
+import { cycleTheme, theme } from "@/lib/theme";
+import { DENSITY, navigate, setTile, ui } from "@/lib/ui-store";
+import { toast } from "sonner";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function useShortcuts() {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing = Boolean(target?.closest("input, textarea, select, [contenteditable=true]"));
+      const state = ui.get();
+      if (event.key === "Escape") {
+        if (state.helpOpen || state.laneDialog.open) return; // Dialogs handle their own Escape.
+        if (target?.closest("[data-controlling]")) return; // The screen releases control first.
+        if (typing) {
+          (target as HTMLElement).blur();
+          return;
+        }
+        if (state.focusedId) {
+          event.preventDefault();
+          navigate({ focusedId: null });
+        }
+        return;
+      }
+      if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (target?.closest("[data-controlling]")) return;
+      switch (event.key) {
+        case "1":
+          navigate({ view: "devices", focusedId: null });
+          break;
+        case "2":
+          navigate({ view: "agents", focusedId: null });
+          break;
+        case "3":
+          navigate({ view: "host", focusedId: null });
+          break;
+        case "/": {
+          const search = document.querySelector<HTMLInputElement>("input[data-search]");
+          if (!search) {
+            navigate({ view: "devices", focusedId: null });
+            requestAnimationFrame(() => document.querySelector<HTMLInputElement>("input[data-search]")?.focus());
+          } else {
+            search.focus();
+            search.select();
+          }
+          break;
+        }
+        case "n":
+          ui.set({ laneDialog: { open: true, deviceId: state.focusedId ?? undefined } });
+          break;
+        case "t": {
+          const next = cycleTheme();
+          toast(`Theme: ${next}`, { duration: 1500 });
+          break;
+        }
+        case "?":
+          ui.set({ helpOpen: true });
+          break;
+        case "[":
+          setTile(state.tile - DENSITY.step * 2);
+          break;
+        case "]":
+          setTile(state.tile + DENSITY.step * 2);
+          break;
+        default:
+          return;
+      }
+      event.preventDefault();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 }
 
-export default App
+function LiveRegion() {
+  const message = announcer.use((state) => state.message);
+  return (
+    <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      {message}
+    </div>
+  );
+}
+
+export default function App() {
+  useShortcuts();
+  const view = ui.use((state) => state.view);
+  const focusedId = ui.use((state) => state.focusedId);
+  const settled = fleet.use((state) => state.settled);
+  const status = fleet.use((state) => state.status);
+  const offline = fleet.use((state) => state.offline);
+  const dark = theme.use((state) => state.dark);
+
+  const neverLoaded = settled && !status && offline;
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        Skip to content
+      </a>
+      <div className="flex h-dvh flex-col">
+        <CommandBar />
+        <main id="main" tabIndex={-1} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3 outline-none sm:px-4">
+          <StatusBanner />
+          {neverLoaded ? (
+            <OfflineScreen />
+          ) : focusedId ? (
+            <FocusView deviceId={focusedId} />
+          ) : view === "agents" ? (
+            <AgentsView />
+          ) : view === "host" ? (
+            <HostView />
+          ) : (
+            <>
+              <FilterRail />
+              <DeviceWall />
+            </>
+          )}
+        </main>
+      </div>
+      <StartLaneDialog />
+      <ShortcutsDialog />
+      <LiveRegion />
+      <Toaster theme={dark ? "dark" : "light"} position="bottom-right" closeButton richColors={false} />
+    </TooltipProvider>
+  );
+}

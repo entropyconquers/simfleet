@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "cn";
 import { AsteriskIcon, ChevronRightIcon, SmartphoneIcon, TabletSmartphoneIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { kindLabel, viaLabel, type Device, type SlimLevel } from "@/lib/devices";
+import { kindLabel, laneHealth, viaLabel, type Device, type SlimLevel } from "@/lib/devices";
 import type { DeviceAgent, Lane, Platform } from "@/lib/types";
 
 /** State dot with a text twin for screen readers; colour is never the only cue. */
@@ -76,12 +76,6 @@ export function SlimChip({ device }: { device: Device }) {
   );
 }
 
-export function laneHealth(lane: Lane): { label: string; tone: "live" | "caution" | "danger" } {
-  if (lane.healthy) return { label: "ready", tone: "live" };
-  if (lane.processRunning) return { label: "starting", tone: "caution" };
-  return { label: "stopped", tone: "danger" };
-}
-
 export function LaneChip({ lane, compact = false }: { lane: Lane; compact?: boolean }) {
   const health = laneHealth(lane);
   const endpoint = lane.mode === "release" ? "embedded" : `:${lane.port}`;
@@ -105,7 +99,7 @@ export function AgentGlyph({ kind, className }: { kind: DeviceAgent["kind"]; cla
   return (
     <span
       className={cn(
-        "inline-flex size-4 shrink-0 items-center justify-center rounded-[5px] text-white",
+        "inline-flex size-4 shrink-0 items-center justify-center rounded-[5px] text-background",
         kind === "claude" ? "bg-claude" : "bg-codex",
         className,
       )}
@@ -149,8 +143,7 @@ export function AgentBadge({ kind, children }: { kind: DeviceAgent["kind"]; chil
     <span
       className={cn(
         CHIP,
-        "text-white",
-        kind === "claude" ? "bg-claude" : "bg-codex",
+        kind === "claude" ? "bg-claude/14 text-claude" : "bg-codex/14 text-codex",
       )}
     >
       {kind === "claude" ? <AsteriskIcon className="size-3" strokeWidth={2.5} aria-hidden /> : <ChevronRightIcon className="size-3" strokeWidth={2.5} aria-hidden />}

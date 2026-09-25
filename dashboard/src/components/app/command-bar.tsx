@@ -44,16 +44,16 @@ export function CommandBar() {
   const ThemeIcon = preference === "system" ? SunMoonIcon : preference === "light" ? SunIcon : MoonIcon;
 
   return (
-    <header className="flex h-13 shrink-0 items-center gap-3 border-b bg-card/80 px-3 backdrop-blur supports-backdrop-filter:bg-card/70 sm:px-4">
+    <header className="flex h-13 shrink-0 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur supports-backdrop-filter:bg-card/70 sm:gap-3 sm:px-4">
       <a href="#" className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/60" onClick={(event) => { event.preventDefault(); navigate({ view: "devices", focusedId: null }); }}>
         <span className="grid size-6 place-items-center rounded-md bg-primary text-primary-foreground" aria-hidden>
           <MonitorIcon className="size-3.5" strokeWidth={2.25} />
         </span>
-        <span className="text-sm font-semibold tracking-tight">simfleet</span>
-        {status ? <span className="hidden text-sm text-muted-foreground sm:inline">{status.projectName}</span> : null}
+        <span className="hidden text-sm font-semibold tracking-tight sm:inline">simfleet</span>
+        {status ? <span className="hidden text-sm text-muted-foreground lg:inline">{status.projectName}</span> : null}
       </a>
 
-      <nav aria-label="Views" className="ml-1 hidden items-center gap-0.5 md:flex">
+      <nav aria-label="Views" className="flex items-center gap-0.5 sm:ml-1">
         {VIEWS.map((item) => {
           const current = view === item.id && !focusedId;
           return (
@@ -62,7 +62,7 @@ export function CommandBar() {
               variant="ghost"
               size="sm"
               aria-current={current ? "page" : undefined}
-              className={cn("press h-7 px-2.5", current && "bg-muted text-foreground")}
+              className={cn("press h-7 px-2 sm:px-2.5", current && "bg-muted text-foreground")}
               onClick={() => navigate({ view: item.id, focusedId: null })}
             >
               {item.label}
@@ -83,9 +83,9 @@ export function CommandBar() {
       )}
 
       <div className="flex items-center gap-1">
-        <Button size="sm" className="press h-7" onClick={() => ui.set({ laneDialog: { open: true } })}>
+        <Button size="sm" className="press h-7" onClick={() => ui.set({ laneDialog: { open: true } })} aria-label="Start lane">
           <PlusIcon data-icon="inline-start" />
-          Start lane
+          <span className="hidden sm:inline">Start lane</span>
         </Button>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -115,7 +115,7 @@ export function CommandBar() {
 function Vital({ label, value, meter, warn }: { label: string; value: string; meter?: number; warn?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
-      <dt className="text-muted-foreground/80">{label}</dt>
+      <dt className="text-muted-foreground">{label}</dt>
       <dd className={cn("tabular flex items-center gap-1.5 font-medium text-foreground", warn && "text-caution")}>
         {meter !== undefined ? (
           <span className="relative h-1.5 w-10 overflow-hidden rounded-full bg-muted" aria-hidden>

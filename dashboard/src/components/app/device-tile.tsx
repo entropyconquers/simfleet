@@ -44,7 +44,7 @@ export const DeviceTile = memo(function DeviceTile({ device, serviceUp, hidden, 
           "group/card flex h-full flex-col overflow-hidden rounded-xl bg-card text-card-foreground",
           "shadow-[0_0_0_1px_var(--edge),0_1px_2px_oklch(0_0_0/0.04)]",
           "outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
-          !device.live && "opacity-80",
+
         )}
       >
         <DeviceScreen

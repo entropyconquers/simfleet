@@ -79,7 +79,7 @@
   --input: oklch(0.86 0.01 250);
   --ring: oklch(0.55 0.12 200);
   --live: oklch(0.5 0.15 150);
-  --caution: oklch(0.55 0.13 70);
+  --caution: oklch(0.5 0.12 70);
   --claude: oklch(0.52 0.13 50);
   --codex: oklch(0.5 0.16 290);
   --android: oklch(0.5 0.13 145);

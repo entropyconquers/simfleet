@@ -14,6 +14,7 @@ export default defineConfig({
   build: {
     outDir: "../dist/dashboard",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 700,
   },
   server: {
     port: 5173,

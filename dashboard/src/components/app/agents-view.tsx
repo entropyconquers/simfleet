@@ -108,7 +108,7 @@ export function AgentsView() {
                     </span>
                   </div>
                   <div className="mt-0.5 font-mono text-[11px] text-muted-foreground md:hidden">{row.cwd ? shortPath(row.cwd) : "—"}</div>
-                  <div className="mt-0.5 font-mono text-[11px] text-muted-foreground/70" title={row.sessionId}>
+                  <div className="mt-0.5 font-mono text-[11px] text-muted-foreground" title={row.sessionId}>
                     {row.sessionId.slice(0, 8)}
                     {row.pid ? ` · pid ${row.pid}` : ""}
                   </div>

@@ -113,6 +113,8 @@ export function DeviceWall() {
   }
 
   return (
+    <>
+    <h1 className="sr-only">Devices</h1>
     <ul
       ref={listRef}
       className="grid gap-3"
@@ -130,6 +132,7 @@ export function DeviceWall() {
         />
       ))}
     </ul>
+    </>
   );
 }
 

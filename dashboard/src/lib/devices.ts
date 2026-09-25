@@ -159,6 +159,12 @@ export function matchesFilters(
   return q.split(/\s+/).every((term) => haystack.includes(term));
 }
 
+export function laneHealth(lane: Lane): { label: string; tone: "live" | "caution" | "danger" } {
+  if (lane.healthy) return { label: "ready", tone: "live" };
+  if (lane.processRunning) return { label: "starting", tone: "caution" };
+  return { label: "stopped", tone: "danger" };
+}
+
 export function viaLabel(via: DeviceAgent["via"]): string {
   switch (via) {
     case "claim":

@@ -27,7 +27,7 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
     throw new OfflineError(error instanceof Error ? error.message : "Network error");
   }
   const text = await response.text();
-  let data: unknown = null;
+  let data: unknown;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {

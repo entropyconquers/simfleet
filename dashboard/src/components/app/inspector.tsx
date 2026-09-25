@@ -399,7 +399,10 @@ function TypeForm({ disabled, onSend }: { disabled: boolean; onSend: (text: stri
           onClick={() =>
             navigator.clipboard
               .readText()
-              .then((clip) => (clip ? onSend(clip) : toast.error("Your clipboard is empty")))
+              .then((clip) => {
+                if (clip) return onSend(clip);
+                toast.error("Your clipboard is empty");
+              })
               .catch(() => toast.error("Clipboard access was denied"))
           }
         >

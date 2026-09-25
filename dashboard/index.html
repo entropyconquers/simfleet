@@ -3,8 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Fleet control for parallel React Native worktrees on iOS simulators and Android emulators." />
+    <title>simfleet</title>
+    <script>
+      // Apply the stored theme before paint so the first frame is not the wrong colour.
+      (function () {
+        try {
+          var stored = localStorage.getItem("simfleet.theme");
+          var dark = stored === "dark" || ((stored === null || stored === "system") && matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
