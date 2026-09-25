@@ -85,17 +85,17 @@ export default function Home() {
           <div className="overflow-hidden rounded-2xl border border-border/60">
             <Image
               src={withBasePath('/images/hero.webp')}
-              alt="The simfleet dashboard with a live Android emulator, and iPhone simulators each showing its slim status, Metro port, and the agent driving it"
-              width={3200}
-              height={2000}
+              alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard streaming a live Android emulator"
+              width={2560}
+              height={1600}
               priority
               className="w-full h-auto dark:hidden"
             />
             <Image
               src={withBasePath('/images/hero-dark.webp')}
-              alt="The simfleet dashboard with a live Android emulator, and iPhone simulators each showing its slim status, Metro port, and the agent driving it"
-              width={3200}
-              height={2000}
+              alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard streaming a live Android emulator"
+              width={2560}
+              height={1600}
               className="w-full h-auto hidden dark:block"
             />
           </div>
