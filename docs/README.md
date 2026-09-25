@@ -15,4 +15,4 @@ bun run test
 - Landing page: `app/page.tsx`.
 - Deployed by `.github/workflows/docs.yml` on pushes to `main` that touch `docs/`.
 
-The site template is © Greg Ceccarelli under the MIT license.
+The site template is unmint by Greg Ceccarelli, used under the MIT license (see `LICENSE-unmint`).
