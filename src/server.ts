@@ -89,6 +89,12 @@ const repoRoot = PROJECT_ROOT;
 // single-file page remains as a fallback for source checkouts without a build.
 const dashboardDirectory = path.resolve(toolDirectory, "../dist/dashboard");
 const legacyDashboardPath = path.join(toolDirectory, "dashboard.html");
+/** Changes whenever the dashboard is rebuilt, so open tabs can reload themselves. */
+function dashboardBuild(): string {
+  const built = path.join(dashboardDirectory, "index.html");
+  return String(fs.existsSync(built) ? fs.statSync(built).mtimeMs : 0);
+}
+
 function dashboardIndex(): string {
   const built = path.join(dashboardDirectory, "index.html");
   return fs.readFileSync(fs.existsSync(built) ? built : legacyDashboardPath, "utf8");
@@ -289,6 +295,7 @@ async function statusPayload() {
     generatedAt: new Date().toISOString(),
     repoRoot,
     projectName: PROJECT_CONFIG.projectName,
+    dashboardBuild: dashboardBuild(),
     config: {
       variants: VARIANTS,
       nativeAuth: PROJECT_CONFIG.nativeAuth ?? null,

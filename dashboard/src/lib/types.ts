@@ -135,6 +135,7 @@ export type Status = {
   generatedAt: string;
   repoRoot: string;
   projectName: string;
+  dashboardBuild?: string;
   config: {
     variants: Record<string, Record<string, Variant>>;
     nativeAuth: unknown;

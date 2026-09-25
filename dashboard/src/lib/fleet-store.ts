@@ -37,6 +37,14 @@ export function refresh(): Promise<void> {
   inFlight = api
     .status()
     .then((status) => {
+      // A rebuilt dashboard reloads open tabs so they never run stale code.
+      if (status.dashboardBuild) {
+        if (loadedBuild === null) loadedBuild = status.dashboardBuild;
+        else if (loadedBuild !== status.dashboardBuild) {
+          location.reload();
+          return;
+        }
+      }
       fleet.set({
         status,
         devices: toDevices(status),
@@ -60,6 +68,8 @@ export function refresh(): Promise<void> {
     });
   return inFlight;
 }
+
+let loadedBuild: string | null = null;
 
 function schedule() {
   clearTimeout(timer);
