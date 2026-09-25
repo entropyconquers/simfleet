@@ -82,21 +82,21 @@ export default function Home() {
         </section>
 
         <section className="max-w-6xl mx-auto px-5 pb-20">
-          <div className="rounded-xl border border-border bg-muted/30 p-2 shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-border/60">
             <Image
-              src={withBasePath('/images/dashboard.png')}
-              alt="The simfleet dashboard showing a live Android emulator with the inspector panel"
-              width={2880}
-              height={1800}
+              src={withBasePath('/images/hero.webp')}
+              alt="The simfleet dashboard with a live Android emulator, and iPhone simulators each showing its slim status, Metro port, and the agent driving it"
+              width={3200}
+              height={2000}
               priority
-              className="w-full h-auto rounded-lg border border-border/60 dark:hidden"
+              className="w-full h-auto dark:hidden"
             />
             <Image
-              src={withBasePath('/images/dashboard-dark.png')}
-              alt="The simfleet dashboard showing a live Android emulator with the inspector panel"
-              width={2880}
-              height={1800}
-              className="w-full h-auto rounded-lg border border-border/60 hidden dark:block"
+              src={withBasePath('/images/hero-dark.webp')}
+              alt="The simfleet dashboard with a live Android emulator, and iPhone simulators each showing its slim status, Metro port, and the agent driving it"
+              width={3200}
+              height={2000}
+              className="w-full h-auto hidden dark:block"
             />
           </div>
         </section>

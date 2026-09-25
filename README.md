@@ -19,7 +19,7 @@
   <a href="https://entropyconquers.github.io/simfleet/docs/api-reference/">API reference</a>
 </p>
 
-<p align="center"><img src="docs/public/images/dashboard.png" alt="The simfleet dashboard with a live Android emulator" width="900"></p>
+<p align="center"><img src="docs/public/images/hero.webp" alt="simfleet: a live dashboard with iPhone simulators and an Android emulator, each slim, on its own Metro port, and attributed to the agent driving it" width="900"></p>
 
 ---
 
