@@ -19,7 +19,7 @@
   <a href="https://entropyconquers.github.io/simfleet/docs/api-reference/">API reference</a>
 </p>
 
-<p align="center"><img src="docs/public/images/hero.webp" alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard streaming a live Android emulator" width="900"></p>
+<p align="center"><img src="docs/public/images/hero.webp" alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard with fourteen slimmed simulators running at once" width="900"></p>
 
 ---
 

@@ -85,7 +85,7 @@ export default function Home() {
           <div className="overflow-hidden rounded-2xl border border-border/60">
             <Image
               src={withBasePath('/images/hero.webp')}
-              alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard streaming a live Android emulator"
+              alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard with fourteen slimmed simulators running at once"
               width={2560}
               height={1600}
               priority
@@ -93,7 +93,7 @@ export default function Home() {
             />
             <Image
               src={withBasePath('/images/hero-dark.webp')}
-              alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard streaming a live Android emulator"
+              alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard with fourteen slimmed simulators running at once"
               width={2560}
               height={1600}
               className="w-full h-auto hidden dark:block"
