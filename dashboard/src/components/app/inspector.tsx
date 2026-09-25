@@ -468,7 +468,7 @@ function UrlForm({ disabled, onSend }: { disabled: boolean; onSend: (url: string
         Open a URL or deep link
       </Label>
       <div className="flex gap-1.5">
-        <Input id={id} type="url" inputMode="url" value={url} onChange={(event) => setUrl(event.target.value)} disabled={disabled} className="h-7 font-mono text-xs" placeholder="zkp2p-dev://…" autoComplete="off" spellCheck={false} />
+        <Input id={id} type="url" inputMode="url" value={url} onChange={(event) => setUrl(event.target.value)} disabled={disabled} className="h-7 font-mono text-xs" placeholder="myapp://…" autoComplete="off" spellCheck={false} />
         <Button type="submit" size="sm" variant="outline" className="press" disabled={disabled || !url.trim()}>
           <ExternalLinkIcon data-icon="inline-start" />
           Open

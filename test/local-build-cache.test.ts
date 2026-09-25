@@ -35,7 +35,7 @@ describe("local Expo native build cache", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "fleet-fingerprint-test-"));
     temporaryRoots.push(root);
     fs.writeFileSync(path.join(root, "package.json"), '{"dependencies":{"expo":"54.0.0"}}\n');
-    fs.writeFileSync(path.join(root, "app.config.js"), "module.exports={expo:{name:'Peer'}};\n");
+    fs.writeFileSync(path.join(root, "app.config.js"), "module.exports={expo:{name:'Example'}};\n");
     fs.writeFileSync(path.join(root, "App.tsx"), "export default 'one';\n");
     const context = {
       platform: "ios",
@@ -124,9 +124,9 @@ describe("local Expo native build cache", () => {
   test("publishes and resolves an app bundle", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "fleet-cache-test-"));
     temporaryRoots.push(root);
-    const sourceApp = path.join(root, "source", "Peer.app");
+    const sourceApp = path.join(root, "source", "Example.app");
     fs.mkdirSync(sourceApp, { recursive: true });
-    fs.writeFileSync(path.join(sourceApp, "Peer"), "binary");
+    fs.writeFileSync(path.join(sourceApp, "Example"), "binary");
     const context = {
       platform: "ios",
       fingerprintHash: "native-inputs",
@@ -138,7 +138,7 @@ describe("local Expo native build cache", () => {
     const hit = await provider.resolveBuildCache(context, { cacheDirectory: root });
 
     expect(hit).not.toBeNull();
-    expect(fs.readFileSync(path.join(hit!, "Peer"), "utf8")).toBe("binary");
+    expect(fs.readFileSync(path.join(hit!, "Example"), "utf8")).toBe("binary");
   });
 
   test("a miss claims the fingerprint for one builder", async () => {

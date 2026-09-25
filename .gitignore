@@ -2,3 +2,10 @@ node_modules
 dist
 dashboard/node_modules
 .DS_Store
+
+# Local env and editor files
+.env
+.env.*
+*.log
+.vscode/
+.idea/

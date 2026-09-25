@@ -20,7 +20,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8791",
+        target: process.env.SIM_FLEET_URL || "http://127.0.0.1:8790",
         changeOrigin: true,
         ws: true,
       },

@@ -1,9 +1,18 @@
 {
   "name": "simfleet",
   "version": "0.1.0",
-  "description": "Run parallel React Native worktrees on slimmed iOS simulators and Android emulators, with one dashboard, one agent API, and leased Metro ports.",
+  "description": "One control plane for parallel React Native work on macOS: slimmed iOS simulators and Android emulators, a live browser dashboard, leased Metro ports, a shared native build cache, and per-agent device attribution for Claude Code and Codex.",
   "type": "module",
   "license": "MIT",
+  "author": "Vishesh Raheja (https://github.com/entropyconquers)",
+  "homepage": "https://github.com/entropyconquers/simfleet#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/entropyconquers/simfleet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/entropyconquers/simfleet/issues"
+  },
   "bin": {
     "simfleet": "./bin/simfleet.ts"
   },
@@ -16,8 +25,11 @@
     "bin",
     "src",
     "tray",
+    "skills",
     "dist/dashboard",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "engines": {
     "bun": ">=1.1.0"
@@ -31,21 +43,32 @@
     "typecheck": "tsc --noEmit",
     "build": "bun run build:dashboard",
     "build:dashboard": "cd dashboard && bun install && bun run build",
-    "prepublishOnly": "bun run typecheck && bun test && bun run build"
+    "prepublishOnly": "bun run typecheck && bun test && bun run build",
+    "lint": "cd dashboard && bun run lint",
+    "check": "bun run typecheck && bun test && bun run build:dashboard"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.6.0"
   },
   "keywords": [
-    "react-native",
+    "agents",
+    "android-emulator",
+    "avdslim",
+    "claude-code",
+    "codex",
+    "developer-tools",
+    "emulator",
     "expo",
     "ios-simulator",
-    "android-emulator",
     "metro",
-    "worktree",
+    "react-native",
+    "scrcpy",
     "simslim",
-    "avdslim",
-    "agents"
-  ]
+    "simulator",
+    "worktree"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

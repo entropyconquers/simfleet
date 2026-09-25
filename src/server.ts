@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -88,7 +89,30 @@ const repoRoot = PROJECT_ROOT;
 // The built dashboard (dashboard/ → dist/dashboard) is preferred; the legacy
 // single-file page remains as a fallback for source checkouts without a build.
 const dashboardDirectory = path.resolve(toolDirectory, "../dist/dashboard");
-const legacyDashboardPath = path.join(toolDirectory, "dashboard.html");
+const dashboardSource = path.resolve(toolDirectory, "../dashboard");
+
+/**
+ * Published packages ship the built dashboard. A git checkout builds it on the
+ * first `serve` so `bun install -g github:...` and local clones work unchanged.
+ */
+function ensureDashboardBuilt(): void {
+  if (fs.existsSync(path.join(dashboardDirectory, "index.html"))) return;
+  if (!fs.existsSync(path.join(dashboardSource, "package.json"))) return;
+  console.log("Building the dashboard (first run)…");
+  for (const args of [["install", "--frozen-lockfile"], ["run", "build"]]) {
+    const result = spawnSync(process.execPath, args, { cwd: dashboardSource, stdio: "inherit" });
+    if (result.status !== 0) {
+      console.error(`Dashboard build failed (bun ${args.join(" ")}); the API still works.`);
+      return;
+    }
+  }
+}
+ensureDashboardBuilt();
+
+const DASHBOARD_MISSING = `<!doctype html><html lang="en"><meta charset="utf-8"><title>simfleet</title>
+<body style="font:15px system-ui;margin:3rem;max-width:40rem;line-height:1.5">
+<h1>simfleet</h1><p>The API is running, but the dashboard is not built. Run
+<code>bun run build:dashboard</code> in the simfleet package and reload.</p></body></html>`;
 /** Changes whenever the dashboard is rebuilt, so open tabs can reload themselves. */
 function dashboardBuild(): string {
   const built = path.join(dashboardDirectory, "index.html");
@@ -97,7 +121,7 @@ function dashboardBuild(): string {
 
 function dashboardIndex(): string {
   const built = path.join(dashboardDirectory, "index.html");
-  return fs.readFileSync(fs.existsSync(built) ? built : legacyDashboardPath, "utf8");
+  return fs.existsSync(built) ? fs.readFileSync(built, "utf8") : DASHBOARD_MISSING;
 }
 const staticContentTypes: Record<string, string> = {
   ".js": "text/javascript; charset=utf-8",

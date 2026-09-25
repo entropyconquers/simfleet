@@ -1,0 +1,23 @@
+name: Bug report
+description: Something in simfleet does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you saw instead (include the command or API call).
+    validations: { required: true }
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Output of `simfleet version`, `sw_vers`, `bun --version`, `xcodebuild -version`, and `simslim --version` / `avdslim version` / `scrcpy --version` where relevant.
+      render: text
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The `simfleet serve` output or `simfleet lane log <id>` tail. Remove secrets.
+      render: text

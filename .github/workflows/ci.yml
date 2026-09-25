@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - name: Dashboard (typecheck, lint, build)
+        working-directory: dashboard
+        run: |
+          bun install --frozen-lockfile
+          bun run lint
+          bun run build
+      - name: Menu-bar helper compiles
+        run: xcrun swiftc -O -o /tmp/SimFleetTray tray/SimFleetTray.swift
+      - name: Package contents
+        run: npm pack --dry-run

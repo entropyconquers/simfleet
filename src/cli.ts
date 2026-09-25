@@ -25,9 +25,14 @@ function identityHeaders(): Record<string, string> {
 }
 
 function usage(): never {
-  console.error(`Usage:
-  simfleet serve                      start the dashboard + API (127.0.0.1:8790)
+  const help = ["help", "--help", "-h"].includes(args[0] ?? "");
+  (help ? console.log : console.error)(`Usage:
+  simfleet serve [--no-tray]          start the dashboard + API (127.0.0.1:8790)
   simfleet tray                       run the macOS menu-bar icon
+  simfleet init                       write a starter .sim-fleet/project.json
+  simfleet skill install [--claude|--codex] [--project]
+                                      install the agent skill for Claude Code / Codex
+  simfleet version
   simfleet status | ports | agents
   simfleet claim <deviceId> [note]    attach this agent session to a device
   simfleet release <deviceId>
@@ -63,7 +68,7 @@ function usage(): never {
   simfleet lane start <worktreePath> <udid> [environment] [mode] [preferredPort]
   simfleet lane <launch|stop|log> <laneId>
   simfleet lane open-url <laneId> <url-or-path>`);
-  process.exit(2);
+  process.exit(help ? 0 : 2);
 }
 
 async function request(pathname: string, init?: RequestInit): Promise<unknown> {
