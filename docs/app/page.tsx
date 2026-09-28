@@ -101,6 +101,22 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="video" className="max-w-6xl mx-auto px-5 pb-20 scroll-mt-16">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">See it in 49 seconds.</h2>
+          <div className="mt-6 overflow-hidden rounded-2xl border border-border/60 bg-black">
+            <video
+              src={withBasePath('/video/simfleet-release.mp4')}
+              poster={withBasePath('/video/poster.jpg')}
+              controls
+              playsInline
+              preload="none"
+              className="block w-full h-auto aspect-video"
+            >
+              <track kind="captions" />
+            </video>
+          </div>
+        </section>
+
         <section className="border-t border-border/60">
           <div className="max-w-6xl mx-auto px-5 py-20">
           <div className="grid gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60 sm:grid-cols-2 lg:grid-cols-3">

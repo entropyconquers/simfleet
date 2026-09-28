@@ -1046,7 +1046,7 @@ type ControlSocketData =
       kind: "ios";
       upstreamUrl: string;
       upstream?: WebSocket;
-      pending: Array<string | Uint8Array>;
+      pending: Array<string | Uint8Array<ArrayBuffer>>;
     }
   | { kind: "android"; avd: string; viewer?: StreamViewer };
 

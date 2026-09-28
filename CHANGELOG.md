@@ -6,11 +6,7 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
-
-- Documentation site at https://entropyconquers.github.io/simfleet (unmint), deployed from `docs/`.
-
-## [0.1.0] - 2026-09-25
+## [0.1.0] - 2026-09-28
 
 ### Added
 
@@ -28,6 +24,7 @@ All notable changes to this project are documented here. The format follows
   `buildCacheProvider` (`simfleet/build-cache`).
 - Agent attribution for Claude Code and Codex sessions, device claims, and a macOS menu-bar icon.
 - `simfleet init`, `simfleet skill install`, and a bundled agent skill.
+- Documentation site at https://entropyconquers.github.io/simfleet, deployed from `docs/`.
 
 [Unreleased]: https://github.com/entropyconquers/simfleet/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/entropyconquers/simfleet/releases/tag/v0.1.0
