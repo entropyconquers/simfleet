@@ -21,7 +21,7 @@
 
 <p align="center"><img src="docs/public/images/hero.webp" alt="Three iPhones running a demo app in front of a display showing the simfleet dashboard with fourteen slimmed simulators running at once" width="900"></p>
 
-<p align="center"><a href="https://entropyconquers.github.io/simfleet/#video"><img src="docs/public/video/poster.jpg" alt="simfleet launch video poster" width="600"></a><br><sub><a href="https://entropyconquers.github.io/simfleet/#video">▶ Watch the launch video (49 s)</a></sub></p>
+https://github.com/user-attachments/assets/96422e28-f5a8-400b-b8d9-9a2530fa1eda
 
 ---
 
