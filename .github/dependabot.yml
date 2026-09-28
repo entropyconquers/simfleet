@@ -8,3 +8,7 @@ updates:
     schedule: { interval: monthly }
     groups:
       dependencies: { patterns: ["*"] }
+    ignore:
+      # typescript-eslint (dashboard lint) does not support TypeScript 7 yet.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
