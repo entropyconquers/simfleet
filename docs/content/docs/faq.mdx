@@ -1,0 +1,34 @@
+---
+title: FAQ
+description: Answers to common questions about device claims and project compatibility.
+---
+
+## Do claims prevent another agent from tapping my device?
+
+No. Claims are advisory ownership records, not server-enforced input locks. The bundled
+[agent skill](/docs/agent-skill) tells agents to respect another live session's claim, but direct
+CLI or API device calls can bypass that convention. Calling `simctl` outside simfleet also bypasses it.
+
+[Lanes](/docs/lanes) separately reject conflicting device, worktree and Metro port allocations.
+That allocation check does not make individual device operations exclusive.
+
+## What happens to a claim when an agent crashes?
+
+Claude Code session discovery checks whether the recorded PID is alive. Once that process is gone,
+the claim stops counting on the next session scan; cleanup does not depend on an exit hook.
+This is a PID liveness check, not a heartbeat or process-identity guarantee: PID reuse and a
+live-but-unresponsive process are limitations.
+
+Codex explicit claims currently need an explicit `simfleet release <udid-or-avd>`. Recent Codex
+activity is not reliable crash detection. There is no claim lease timeout. The 30-minute expiry
+described in [agent attribution](/docs/agents) applies to activity touches, not explicit claims.
+Claims and lane allocations are separate; a claim is not a hard device lock.
+
+## Can I use simfleet with bare React Native without Expo?
+
+The fleet dashboard and device controls can be used independently of Expo. However, in v0.1.0,
+lane startup invokes the project's Expo CLI to start Metro, and the native build workflow also
+requires Expo. Those paths do not have a non-Expo React Native fallback.
+
+Do not treat dashboard compatibility as support for the full lane and native-build workflow on
+a bare React Native project without Expo.
