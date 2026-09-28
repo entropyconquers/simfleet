@@ -1,6 +1,6 @@
 {
   "name": "simfleet",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "One control plane for parallel React Native work on macOS: slimmed iOS simulators and Android emulators, a live browser dashboard, leased Metro ports, a shared native build cache, and per-agent device attribution for Claude Code and Codex.",
   "type": "module",
   "license": "MIT",

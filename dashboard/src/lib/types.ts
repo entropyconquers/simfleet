@@ -158,6 +158,7 @@ export type Status = {
     devices: SimSlimDevice[];
     stale?: boolean;
   };
+  simulatorViewer?: { app: "DeviceHub" | "Simulator"; path: string | null; macosVersion: string | null };
   emulators: Emulator[];
   android: AndroidToolchain;
   autoSlim?: AutoSlim;

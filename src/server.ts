@@ -69,6 +69,7 @@ import {
   getProcesses,
   getSimSlimInventory,
   getSimulatorCreationOptions,
+  getSimulatorViewer,
   getSimulators,
   getTopProcesses,
   getWorktrees,
@@ -283,7 +284,7 @@ async function statusPayload() {
       getEmulators(processes).catch(() => []),
       getAndroidToolchain(),
     ]);
-  const simSlim = await getSimSlimInventory();
+  const [simSlim, simulatorViewer] = await Promise.all([getSimSlimInventory(), getSimulatorViewer()]);
   const simulatorsWithSlimState = simulators.map((simulator) => ({
     ...simulator,
     simSlim: simSlim.devices.find((device) => device.udid === simulator.udid) || null,
@@ -335,6 +336,7 @@ async function statusPayload() {
       agents: deviceAgents.get(simulator.udid) || [],
     })),
     simSlim,
+    simulatorViewer,
     emulators: emulators.map((emulator) => ({
       ...emulator,
       operation: emulatorOperations.has(emulator.avd)

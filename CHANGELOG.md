@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-29
+
+### Fixed
+
+- "Open" on an iOS simulator works with Xcode 27, where Device Hub replaced Simulator.app. On macOS 27
+  simfleet opens the device in Device Hub (`devices://device/open?id=<udid>`); older systems keep
+  using Simulator.app, and each falls back to the other when it's missing. The dashboard names
+  whichever app it will open.
+
 ## [0.1.0] - 2026-09-28
 
 ### Added
@@ -26,5 +35,6 @@ All notable changes to this project are documented here. The format follows
 - `simfleet init`, `simfleet skill install`, and a bundled agent skill.
 - Documentation site at https://entropyconquers.github.io/simfleet, deployed from `docs/`.
 
-[Unreleased]: https://github.com/entropyconquers/simfleet/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/entropyconquers/simfleet/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/entropyconquers/simfleet/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/entropyconquers/simfleet/releases/tag/v0.1.0

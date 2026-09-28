@@ -18,7 +18,11 @@ const VERBS: Record<Lifecycle, { progress: string; done: string }> = {
 /** Destructive actions require confirmation before they reach this function. */
 export const DESTRUCTIVE: ReadonlySet<Lifecycle> = new Set(["shutdown", "restore", "slim"]);
 
-export function lifecycleActions(device: Device, avdslimInstalled: boolean): Array<{
+export function lifecycleActions(
+  device: Device,
+  avdslimInstalled: boolean,
+  simulatorViewer: "DeviceHub" | "Simulator" = "Simulator",
+): Array<{
   action: Lifecycle;
   label: string;
   description: string;
@@ -34,7 +38,15 @@ export function lifecycleActions(device: Device, avdslimInstalled: boolean): Arr
   if (device.platform === "ios") {
     if (device.live) {
       return [
-        { action: "open", label: "Open in Simulator.app", description: "Bring the Simulator window to the front", disabled: busy },
+        {
+          action: "open",
+          label: simulatorViewer === "DeviceHub" ? "Open in Device Hub" : "Open in Simulator.app",
+          description:
+            simulatorViewer === "DeviceHub"
+              ? "Show this simulator in Xcode's Device Hub"
+              : "Bring the Simulator window to the front",
+          disabled: busy,
+        },
         device.slim.level === "verified"
           ? { action: "restore", label: "Restore stock services", description: "Re-enable every service and reboot", disabled: busy }
           : {

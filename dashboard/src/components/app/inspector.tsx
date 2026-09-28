@@ -52,6 +52,7 @@ export function Inspector({ device, screen, status }: { device: Device; screen: 
   const [busy, setBusy] = useState<string | null>(null);
   const now = useNow();
   const avdslimInstalled = status?.android.avdslim.installed ?? true;
+  const simulatorViewer = status?.simulatorViewer?.app ?? "Simulator";
   const live = device.live;
 
   const input = async (payload: Record<string, unknown>, key: string) => {
@@ -91,7 +92,7 @@ export function Inspector({ device, screen, status }: { device: Device; screen: 
     <aside aria-label="Device controls" className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto rounded-xl bg-card p-3 shadow-[0_0_0_1px_var(--edge)] lg:w-[340px] lg:p-4">
       <Section title="Lifecycle">
         <div className="flex flex-wrap gap-1.5">
-          {lifecycleActions(device, avdslimInstalled).map((item) => (
+          {lifecycleActions(device, avdslimInstalled, simulatorViewer).map((item) => (
             <Button
               key={item.action}
               size="sm"

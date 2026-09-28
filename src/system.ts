@@ -686,6 +686,57 @@ export async function configureAndLaunch(session: FleetSession): Promise<void> {
   }
 }
 
+export type SimulatorViewer = {
+  /** Xcode 27 replaced Simulator.app with Device Hub; older toolchains still ship Simulator.app. */
+  app: "DeviceHub" | "Simulator";
+  path: string | null;
+  macosVersion: string | null;
+};
+
+let simulatorViewerCache: { value: SimulatorViewer; at: number } | null = null;
+
+export async function getSimulatorViewer(): Promise<SimulatorViewer> {
+  if (simulatorViewerCache && Date.now() - simulatorViewerCache.at < 60_000) return simulatorViewerCache.value;
+  const [version, developerDir] = await Promise.all([
+    run("sw_vers", ["-productVersion"], { timeoutMs: 5_000 }),
+    run("xcode-select", ["-p"], { timeoutMs: 5_000 }),
+  ]);
+  const macosVersion = version.exitCode === 0 ? version.stdout.trim() : null;
+  const devDir = developerDir.exitCode === 0 ? developerDir.stdout.trim() : "/Applications/Xcode.app/Contents/Developer";
+  const deviceHub = path.resolve(devDir, "..", "Applications", "DeviceHub.app");
+  const simulator = path.join(devDir, "Applications", "Simulator.app");
+  const hasDeviceHub = fs.existsSync(deviceHub);
+  const hasSimulator = fs.existsSync(simulator);
+  // macOS 27 ships with Xcode 27, where Device Hub is the simulator viewer. Prefer
+  // it there, and on older systems fall back to whichever app the selected Xcode has.
+  const preferDeviceHub = Number.parseInt(macosVersion ?? "0", 10) >= 27;
+  let value: SimulatorViewer;
+  if (hasDeviceHub && (preferDeviceHub || !hasSimulator)) {
+    value = { app: "DeviceHub", path: deviceHub, macosVersion };
+  } else if (hasSimulator) {
+    value = { app: "Simulator", path: simulator, macosVersion };
+  } else {
+    value = { app: preferDeviceHub ? "DeviceHub" : "Simulator", path: null, macosVersion };
+  }
+  simulatorViewerCache = { value, at: Date.now() };
+  return value;
+}
+
+async function openSimulatorWindow(udid: string): Promise<CommandResult> {
+  const viewer = await getSimulatorViewer();
+  if (viewer.app === "DeviceHub") {
+    const url = `devices://device/open?id=${encodeURIComponent(udid)}`;
+    // Device Hub lives inside Xcode.app, so LaunchServices may not know the
+    // devices:// scheme yet; naming the app by path registers and opens it.
+    const result = await run("open", viewer.path ? ["-a", viewer.path, url] : [url]);
+    if (result.exitCode === 0) return result;
+    return run("open", viewer.path ? ["-a", viewer.path] : ["-b", "com.apple.dt.Devices"]);
+  }
+  const result = await run("open", ["-a", viewer.path ?? "Simulator", "--args", "-CurrentDeviceUDID", udid]);
+  if (result.exitCode === 0) return result;
+  return run("open", [`devices://device/open?id=${encodeURIComponent(udid)}`]);
+}
+
 export async function simulatorAction(
   action: "boot" | "boot-stock" | "shutdown" | "open" | "slim" | "restore",
   udid: string,
@@ -700,7 +751,7 @@ export async function simulatorAction(
     return;
   }
   if (action === "open") {
-    result = await run("open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", udid]);
+    result = await openSimulatorWindow(udid);
   } else if (action === "slim" || action === "boot") {
     const failures: string[] = [];
     for (let attempt = 1; attempt <= 2; attempt += 1) {
