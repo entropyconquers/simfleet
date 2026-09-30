@@ -2,7 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { PROJECT_CONFIG } from "./config";
+import { APP_DIRECTORY, PROJECT_CONFIG } from "./config";
+
+// Configured paths are relative to the project; git works from the checkout root.
+const fromCheckoutRoot = (relativePaths: string[]) =>
+  relativePaths.map((relativePath) => path.join(APP_DIRECTORY, relativePath));
 
 // Files carrying the fleet overlay on top of the base ref. The overlay is
 // applied as a patch against baseRef, never as a file copy: a lane worktree
@@ -10,10 +14,12 @@ import { PROJECT_CONFIG } from "./config";
 // be handed newer source that references modules it does not have.
 const worktreeConfig = PROJECT_CONFIG.worktrees || {};
 const FLEET_BASE_REF = worktreeConfig.baseRef || "origin/main";
-const overlayFiles = worktreeConfig.overlayFiles || [];
-const removedLegacyFleetFiles = worktreeConfig.removedFiles || [];
-const sharedFleetPaths = worktreeConfig.sharedPaths || [".sim-fleet", "node_modules"];
-const linkedSkills = worktreeConfig.skills || [];
+const overlayFiles = fromCheckoutRoot(worktreeConfig.overlayFiles || []);
+const removedLegacyFleetFiles = fromCheckoutRoot(worktreeConfig.removedFiles || []);
+const sharedFleetPaths = fromCheckoutRoot(
+  worktreeConfig.sharedPaths || [".sim-fleet", "node_modules"],
+);
+const linkedSkills = fromCheckoutRoot(worktreeConfig.skills || []);
 
 function runGit(repoRoot: string, args: string[]): string {
   const result = spawnSync("git", ["-C", repoRoot, ...args], {

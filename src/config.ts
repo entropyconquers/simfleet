@@ -83,24 +83,37 @@ function hasProjectConfig(directory: string): boolean {
   return fs.existsSync(path.join(directory, PROJECT_CONFIG_RELATIVE_PATH));
 }
 
-function mainCheckoutFor(directory: string): string | null {
+function checkoutFor(directory: string): { top: string; main: string | null } | null {
   const result = spawnSync(
     "git",
-    ["-C", directory, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+    ["-C", directory, "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir"],
     { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
   );
   if (result.status !== 0) return null;
-  const commonDirectory = result.stdout.trim();
-  return path.basename(commonDirectory) === ".git" ? path.dirname(commonDirectory) : null;
+  const [top, commonDirectory] = result.stdout.trim().split("\n");
+  return {
+    top,
+    main: path.basename(commonDirectory) === ".git" ? path.dirname(commonDirectory) : null,
+  };
 }
+
+export type ProjectLocation = {
+  /** Directory holding `.sim-fleet/project.json`, in the main checkout when it has one. */
+  projectRoot: string;
+  /** Checkout that `projectRoot` lives in; `git worktree list` paths are siblings of it. */
+  repoRoot: string;
+  /** Where the app sits inside every checkout: "" for a root app, "apps/mobile" in a monorepo. */
+  appDirectory: string;
+};
 
 /**
  * The fleet always runs against the main checkout: that is where shared
  * dependencies, skills, and the worktree overlay live. Running the CLI from a
- * linked feature worktree therefore resolves to its main checkout.
+ * linked feature worktree therefore resolves to its main checkout, at the same
+ * subdirectory when the app lives inside a monorepo.
  */
-export function resolveProjectRoot(start: string): string {
-  let directory = path.resolve(start);
+export function projectLocation(start: string): ProjectLocation {
+  let directory = fs.realpathSync(path.resolve(start));
   for (;;) {
     if (hasProjectConfig(directory)) break;
     const parent = path.dirname(directory);
@@ -112,8 +125,13 @@ export function resolveProjectRoot(start: string): string {
     }
     directory = parent;
   }
-  const main = mainCheckoutFor(directory);
-  return main && hasProjectConfig(main) ? main : directory;
+  const checkout = checkoutFor(directory);
+  if (!checkout) return { projectRoot: directory, repoRoot: directory, appDirectory: "" };
+  const appDirectory = path.relative(checkout.top, directory);
+  const mainProject = checkout.main && path.join(checkout.main, appDirectory);
+  return mainProject && hasProjectConfig(mainProject)
+    ? { projectRoot: mainProject, repoRoot: checkout.main as string, appDirectory }
+    : { projectRoot: directory, repoRoot: checkout.top, appDirectory };
 }
 
 export function loadProjectConfig(projectRoot: string): ProjectConfigFile {
@@ -149,7 +167,16 @@ export function loadProjectConfig(projectRoot: string): ProjectConfigFile {
   return config;
 }
 
-export const PROJECT_ROOT = resolveProjectRoot(process.env.SIM_FLEET_PROJECT_ROOT || process.cwd());
+const location = projectLocation(process.env.SIM_FLEET_PROJECT_ROOT || process.cwd());
+export const PROJECT_ROOT = location.projectRoot;
+export const REPO_ROOT = location.repoRoot;
+export const APP_DIRECTORY = location.appDirectory;
+
+/** The app's directory inside a worktree, where Expo and the native projects live. */
+export function appPath(worktreePath: string): string {
+  return path.join(worktreePath, APP_DIRECTORY);
+}
+
 const projectConfig = loadProjectConfig(PROJECT_ROOT);
 export const PROJECT_CONFIG = projectConfig;
 

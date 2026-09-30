@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import {
   FLEET_CONFIG,
   PROJECT_CONFIG,
-  PROJECT_ROOT,
+  REPO_ROOT,
   VARIANTS,
   getVariant,
   isAppEnvironment,
@@ -86,7 +86,7 @@ import {
 } from "./system";
 
 const toolDirectory = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = PROJECT_ROOT;
+const repoRoot = REPO_ROOT;
 // The built dashboard (dashboard/ → dist/dashboard) is preferred; the legacy
 // single-file page remains as a fallback for source checkouts without a build.
 const dashboardDirectory = path.resolve(toolDirectory, "../dist/dashboard");
