@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Apps inside a monorepo. Put `.sim-fleet/project.json` in the app's directory (for example
+  `apps/mobile`) and lanes and native builds run Expo from that directory of each worktree. Lanes are
+  still started with the worktree root.
+
 ## [0.1.1] - 2026-09-29
 
 ### Fixed

@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import {
   FLEET_CONFIG,
   PROJECT_CONFIG,
+  appPath,
   getVariant,
   projectBundleEnv,
   type AppEnvironment,
@@ -552,9 +553,10 @@ export function isProcessRunning(pid: number): boolean {
 }
 
 export function startMetro(session: FleetSession & { port: number }): number {
-  const expoBinary = path.join(session.worktreePath, "node_modules", ".bin", "expo");
+  const appRoot = appPath(session.worktreePath);
+  const expoBinary = path.join(appRoot, "node_modules", ".bin", "expo");
   if (!fs.existsSync(expoBinary)) {
-    throw new Error(`Expo CLI is missing in ${session.worktreePath}/node_modules`);
+    throw new Error(`Expo CLI is missing in ${appRoot}/node_modules`);
   }
   const log = fs.openSync(session.logPath, "a");
   const child = spawn(
@@ -569,7 +571,7 @@ export function startMetro(session: FleetSession & { port: number }): number {
       String(FLEET_CONFIG.metroMaxWorkers),
     ],
     {
-      cwd: session.worktreePath,
+      cwd: appRoot,
       detached: true,
       env: {
         ...process.env,

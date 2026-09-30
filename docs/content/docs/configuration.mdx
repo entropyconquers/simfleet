@@ -5,6 +5,8 @@ description: Every field of .sim-fleet/project.json.
 
 simfleet runs against the nearest directory containing `.sim-fleet/project.json` and resolves linked worktrees to their main checkout. Override the project with `SIM_FLEET_PROJECT_ROOT`. `simfleet init` writes a starter file.
 
+In a monorepo, put `.sim-fleet/project.json` in the app's directory (for example `apps/mobile`). Lanes and native builds run Expo from that directory of each worktree, and you still start lanes with the worktree root. Paths in the file are relative to the app's directory.
+
 ```jsonc title=".sim-fleet/project.json"
 {
   "schemaVersion": 1,

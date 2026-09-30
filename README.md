@@ -161,7 +161,9 @@ entirely with `SIM_FLEET_AUTO_SLIM=0` or `"autoSlim": false`.
 ## Project configuration
 
 simfleet runs against the nearest directory containing `.sim-fleet/project.json` and resolves linked Git
-worktrees to their main checkout (override with `SIM_FLEET_PROJECT_ROOT`).
+worktrees to their main checkout (override with `SIM_FLEET_PROJECT_ROOT`). In a monorepo, put the file
+in the app's directory (for example `apps/mobile`): lanes and native builds run Expo there in each
+worktree, and you still start lanes with the worktree root.
 
 ```jsonc
 {

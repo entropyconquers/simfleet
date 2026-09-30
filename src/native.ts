@@ -7,6 +7,7 @@ import {
   FLEET_CONFIG,
   NATIVE_SHELLS,
   PROJECT_CONFIG,
+  appPath,
   projectBundleEnv,
   type AppEnvironment,
   type BuildMode,
@@ -108,7 +109,7 @@ export async function nativeBuildPlan(
   const configuration = configurationFor(mode);
   const context: NativeContext = {
     platform: "ios",
-    projectRoot: worktreePath,
+    projectRoot: appPath(worktreePath),
     fingerprintHash: "pending",
     runOptions: { configuration },
   };
@@ -173,12 +174,13 @@ async function buildNativeShell(
   mode: BuildMode,
   fingerprint: string,
 ): Promise<string> {
-  const expo = path.join(worktreePath, "node_modules", ".bin", "expo");
-  if (!fs.existsSync(expo)) throw new Error(`Expo CLI is missing in ${worktreePath}/node_modules`);
+  const appRoot = appPath(worktreePath);
+  const expo = path.join(appRoot, "node_modules", ".bin", "expo");
+  if (!fs.existsSync(expo)) throw new Error(`Expo CLI is missing in ${appRoot}/node_modules`);
   const configuration = configurationFor(mode);
   const context: NativeContext = {
     platform: "ios",
-    projectRoot: worktreePath,
+    projectRoot: appRoot,
     fingerprintHash: fingerprint,
     runOptions: { configuration },
   };
@@ -201,7 +203,7 @@ async function buildNativeShell(
     const prebuildExitCode = await runLoggedStep(
       expo,
       ["prebuild", "--platform", "ios", "--no-install"],
-      worktreePath,
+      appRoot,
       environment,
       log,
     );
@@ -211,14 +213,14 @@ async function buildNativeShell(
     const podsExitCode = await runLoggedStep(
       "pod",
       ["install"],
-      path.join(worktreePath, "ios"),
+      path.join(appRoot, "ios"),
       environment,
       log,
     );
     if (podsExitCode !== 0) {
       throw new Error(`CocoaPods install failed with exit ${podsExitCode}; see ${logPath}`);
     }
-    const iosDirectory = path.join(worktreePath, "ios");
+    const iosDirectory = path.join(appRoot, "ios");
     const projectName = fs
       .readdirSync(iosDirectory)
       .find((entry) => entry.endsWith(".xcodeproj") && !entry.startsWith("Pods"))
@@ -256,7 +258,7 @@ async function buildNativeShell(
     const buildExitCode = await runLoggedStep(
       "xcodebuild",
       [...xcodeArgs, "build"],
-      worktreePath,
+      appRoot,
       environment,
       log,
     );
@@ -266,7 +268,7 @@ async function buildNativeShell(
       );
     }
     const settingsResult = await run("xcodebuild", [...xcodeArgs, "-showBuildSettings", "-json"], {
-      cwd: worktreePath,
+      cwd: appRoot,
       env: environment,
       timeoutMs: 30_000,
     });
@@ -334,13 +336,13 @@ export async function ensureNativeShell(
   };
 }
 
-function releaseEntryFile(worktreePath: string): string {
+function releaseEntryFile(appRoot: string): string {
   const declared = PROJECT_CONFIG.release?.entryFile;
-  if (declared) return path.join(worktreePath, declared);
+  if (declared) return path.join(appRoot, declared);
   const candidate = ["index.ts", "index.tsx", "index.js"]
-    .map((name) => path.join(worktreePath, name))
+    .map((name) => path.join(appRoot, name))
     .find((file) => fs.existsSync(file));
-  if (!candidate) throw new Error(`No release entry file found in ${worktreePath}`);
+  if (!candidate) throw new Error(`No release entry file found in ${appRoot}`);
   return candidate;
 }
 
@@ -354,7 +356,8 @@ export async function createRebundledRelease(
   const destinationRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sim-fleet-release-"));
   const destination = path.join(destinationRoot, path.basename(ensured.artifactPath));
   fs.cpSync(ensured.artifactPath, destination, { recursive: true });
-  const expo = path.join(worktreePath, "node_modules", ".bin", "expo");
+  const appRoot = appPath(worktreePath);
+  const expo = path.join(appRoot, "node_modules", ".bin", "expo");
   const releaseEnvironment = {
     ...process.env,
     NODE_ENV: "production",
@@ -368,7 +371,7 @@ export async function createRebundledRelease(
     // binaries. Build the Hermes payload directly into a disposable copy of
     // the cached production shell, then install and launch it with simctl.
     const configResult = await run(expo, ["config", "--type", "public", "--json"], {
-      cwd: worktreePath,
+      cwd: appRoot,
       env: releaseEnvironment,
     });
     if (configResult.exitCode !== 0) {
@@ -401,7 +404,7 @@ export async function createRebundledRelease(
       [
         "export:embed",
         "--entry-file",
-        releaseEntryFile(worktreePath),
+        releaseEntryFile(appRoot),
         "--platform",
         "ios",
         "--dev",
@@ -416,7 +419,7 @@ export async function createRebundledRelease(
         String(FLEET_CONFIG.metroMaxWorkers),
         "--bytecode",
       ],
-      { cwd: worktreePath, env: releaseEnvironment },
+      { cwd: appRoot, env: releaseEnvironment },
     );
     if (bundleResult.exitCode !== 0 || !fs.existsSync(bundlePath)) {
       throw new Error(
