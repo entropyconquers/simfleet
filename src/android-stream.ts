@@ -15,6 +15,7 @@ import { run } from "./system";
  * config and a key frame.
  */
 
+const PACKET_FLAG_SESSION = 1n << 63n;
 const PACKET_FLAG_CONFIG = 1n << 63n;
 const PACKET_FLAG_KEY_FRAME = 1n << 62n;
 const DEVICE_NAME_LENGTH = 64;
@@ -187,6 +188,7 @@ class ScrcpySession {
   private config: Uint8Array | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private closed = false;
+  private usesSessionPackets = false;
   meta: { width: number; height: number; name: string } | null = null;
 
   constructor(
@@ -198,6 +200,7 @@ class ScrcpySession {
   ) {}
 
   async connect(scrcpy: Scrcpy, remoteJar: string, scid: string) {
+    this.usesSessionPackets = Number.parseInt(scrcpy.version, 10) >= 4;
     this.process = Bun.spawn(
       [
         this.adbPath,
@@ -301,23 +304,35 @@ class ScrcpySession {
         this.meta = { width: 0, height: 0, name: new TextDecoder().decode(name).replace(/\0.*$/s, "") };
         this.stage = "codec";
       } else if (this.stage === "codec") {
-        const codec = this.videoQueue.take(12);
+        // scrcpy 4+ sends only the codec ID here; dimensions follow in session packets.
+        const codec = this.videoQueue.take(this.usesSessionPackets ? 4 : 12);
         if (!codec) return;
-        const view = new DataView(codec.buffer);
-        this.meta = { ...this.meta!, width: view.getUint32(4), height: view.getUint32(8) };
-        this.broadcast(JSON.stringify({ type: "meta", ...this.meta }));
+        if (!this.usesSessionPackets) {
+          const view = new DataView(codec.buffer);
+          this.meta = { ...this.meta!, width: view.getUint32(4), height: view.getUint32(8) };
+          this.broadcast(JSON.stringify({ type: "meta", ...this.meta }));
+        }
         this.stage = "frames";
       } else {
         const header = this.videoQueue.peek(12);
         if (!header) return;
         const view = new DataView(header.buffer);
+        const ptsAndFlags = view.getBigUint64(0);
+        if (this.usesSessionPackets && (ptsAndFlags & PACKET_FLAG_SESSION) !== 0n) {
+          this.videoQueue.take(12);
+          this.meta = { ...this.meta!, width: view.getUint32(4), height: view.getUint32(8) };
+          this.config = null;
+          this.broadcast(JSON.stringify({ type: "meta", ...this.meta }));
+          continue;
+        }
         const size = view.getUint32(8);
         if (this.videoQueue.size < 12 + size) return;
         this.videoQueue.take(12);
         const payload = this.videoQueue.take(size)!;
-        const ptsAndFlags = view.getBigUint64(0);
-        const isConfig = (ptsAndFlags & PACKET_FLAG_CONFIG) !== 0n;
-        const isKey = (ptsAndFlags & PACKET_FLAG_KEY_FRAME) !== 0n;
+        // scrcpy 4+ reserves the high bit for session packets and shifts frame flags down.
+        const flagShift = this.usesSessionPackets ? 1n : 0n;
+        const isConfig = (ptsAndFlags & (PACKET_FLAG_CONFIG >> flagShift)) !== 0n;
+        const isKey = (ptsAndFlags & (PACKET_FLAG_KEY_FRAME >> flagShift)) !== 0n;
         if (isConfig) this.config = payload;
         const packet = new Uint8Array(1 + payload.length);
         packet[0] = (isConfig ? 1 : 0) | (isKey ? 2 : 0);
