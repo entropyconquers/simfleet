@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Android live video supports scrcpy 4.x session metadata and frame flags while retaining
+  compatibility with the earlier stream format.
+
 ## [0.1.1] - 2026-09-29
 
 ### Fixed
