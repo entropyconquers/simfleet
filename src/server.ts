@@ -550,12 +550,29 @@ async function startSession(request: Request): Promise<Response> {
   const worktree = worktrees.find((candidate) => candidate.path === input.worktreePath);
   if (!worktree) return errorResponse("Unknown worktree path");
   const currentState = loadState();
+  // A worktree runs one Metro; extra debug lanes (e.g. iOS + Android) attach to it.
+  const sharedMetro =
+    input.mode === "debug"
+      ? currentState.sessions.find(
+          (session) =>
+            session.worktreePath === worktree.path &&
+            session.mode === "debug" &&
+            sessionIsActive(session),
+        )
+      : undefined;
+  if (sharedMetro && sharedMetro.environment !== input.environment) {
+    return errorResponse(
+      `This worktree's Metro (lane ${sharedMetro.id}) serves ${sharedMetro.environment}; start this lane with that environment or stop that lane first`,
+    );
+  }
   if (
-    currentState.sessions.some(
-      (session) => session.worktreePath === worktree.path && sessionIsActive(session),
-    )
+    sharedMetro &&
+    input.preferredPort !== undefined &&
+    Number(input.preferredPort) !== sharedMetro.port
   ) {
-    return errorResponse("This worktree already has a managed Metro session");
+    return errorResponse(
+      `This worktree's Metro already runs on port ${sharedMetro.port}; omit preferredPort to share it`,
+    );
   }
   if (
     currentState.sessions.some(
@@ -569,7 +586,9 @@ async function startSession(request: Request): Promise<Response> {
   if (input.mode === "release" && input.preferredPort !== undefined) {
     return errorResponse("release lanes embed their JS bundle and do not lease a Metro port");
   }
-  if (input.mode === "debug" && input.preferredPort !== undefined) {
+  if (sharedMetro) {
+    port = sharedMetro.port;
+  } else if (input.mode === "debug" && input.preferredPort !== undefined) {
     if (!Number.isInteger(input.preferredPort)) {
       return errorResponse("preferredPort must be an integer");
     }
@@ -599,21 +618,24 @@ async function startSession(request: Request): Promise<Response> {
     bundleId: variant.bundleId,
     port,
     metroPid: null,
-    logPath: logPathFor(id),
+    // Shared lanes point at the Metro owner's log, since that's where Metro writes.
+    logPath: sharedMetro ? sharedMetro.logPath : logPathFor(id),
     startedAt: new Date().toISOString(),
   };
-  const session: FleetSession =
-    input.mode === "debug"
+  const session: FleetSession = sharedMetro
+    ? { ...base, metroPid: sharedMetro.metroPid }
+    : input.mode === "debug"
       ? {
           ...base,
           metroPid: startMetro({ ...base, port: port as number }),
         }
       : base;
   updateState((state) => {
+    // Drop this device's old lane and the worktree's dead lanes; keep live siblings.
     state.sessions = state.sessions.filter(
       (existing) =>
-        existing.worktreePath !== session.worktreePath &&
-        existing.simulatorUdid !== session.simulatorUdid,
+        existing.simulatorUdid !== session.simulatorUdid &&
+        (existing.worktreePath !== session.worktreePath || sessionIsActive(existing)),
     );
     state.sessions.push(session);
   });
@@ -626,7 +648,12 @@ async function stopSession(id: string): Promise<Response> {
   const state = loadState();
   const session = state.sessions.find((candidate) => candidate.id === id);
   if (!session) return errorResponse("Unknown fleet session", 404);
-  await stopManagedMetro(session);
+  const metroShared =
+    session.metroPid !== null &&
+    state.sessions.some(
+      (other) => other.id !== id && other.metroPid === session.metroPid && sessionIsActive(other),
+    );
+  if (!metroShared) await stopManagedMetro(session);
   if (sessionPlatform(session) === "android")
     await removeLaneReverse(session).catch(() => undefined);
   state.sessions = state.sessions.filter((candidate) => candidate.id !== id);
@@ -919,16 +946,20 @@ async function portPayload() {
         environment,
         mode,
         range: mode === "debug" ? variant.portRange : null,
-        leasedPorts: state.sessions
-          .filter(
-            (session) =>
-              session.environment === environment &&
-              session.mode === "debug" &&
-              session.port !== null &&
-              session.metroPid !== null &&
-              isProcessRunning(session.metroPid),
-          )
-          .map((session) => session.port as number),
+        leasedPorts: [
+          ...new Set(
+            state.sessions
+              .filter(
+                (session) =>
+                  session.environment === environment &&
+                  session.mode === "debug" &&
+                  session.port !== null &&
+                  session.metroPid !== null &&
+                  isProcessRunning(session.metroPid),
+              )
+              .map((session) => session.port as number),
+          ),
+        ],
         leases: state.sessions
           .filter(
             (session) =>
