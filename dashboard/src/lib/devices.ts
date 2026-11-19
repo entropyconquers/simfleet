@@ -200,8 +200,6 @@ export function viaLabel(via: DeviceAgent["via"]): string {
       return "claimed";
     case "touch":
       return "recently active";
-    case "lane-owner":
-      return "started lane";
     case "lane-worktree":
       return "same worktree";
   }

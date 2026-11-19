@@ -15,8 +15,8 @@ import { isProcessRunning } from "./system";
  * Discovers live coding-agent sessions (Claude Code and Codex) and attributes
  * them to devices. Attribution comes from three signals, strongest first:
  * an explicit claim, a recent CLI/API request carrying the agent's session
- * headers ("touch"), and a lane the agent started (or, for lanes with no recorded
- * starter, whose worktree is the agent's working directory).
+ * headers ("touch"; starting a lane records a claim), and, for devices with neither,
+ * a lane whose worktree is the agent's working directory.
  */
 
 export type AgentKind = "claude" | "codex";
@@ -33,7 +33,7 @@ export type AgentSession = {
 };
 
 export type DeviceAgent = AgentSession & {
-  via: "claim" | "touch" | "lane-owner" | "lane-worktree";
+  via: "claim" | "touch" | "lane-worktree";
   lastSeenAt: string | null;
   note?: string;
 };
@@ -269,26 +269,30 @@ export function attributeAgents(
     });
   }
 
-  for (const lane of lanes) {
-    for (const agent of laneAgents(lane, sessions)) add(lane.simulatorUdid, agent);
+  for (const [deviceId, agent] of laneWorktreeAgents(lanes, sessions, new Set(byDevice.keys()))) {
+    add(deviceId, agent);
   }
   return byDevice;
 }
 
 /**
- * Agents a lane is attributed to: the live session that started it, or, for lanes
- * with no recorded starter, sessions working inside its worktree. Matching by
- * directory alone would credit every agent launched from the same checkout.
+ * Guesses a lane's agents from sessions working inside its worktree, but only for
+ * devices nobody has claimed or recently touched. Lanes started from the CLI claim
+ * their device, so this is mostly for lanes started from the dashboard.
  */
-export function laneAgents(lane: FleetSession, sessions: AgentSession[]): DeviceAgent[] {
-  if (lane.startedBy) {
-    const owner = sessions.find(
-      (session) =>
-        session.kind === lane.startedBy!.agent && session.sessionId === lane.startedBy!.sessionId,
+export function laneWorktreeAgents(
+  lanes: FleetSession[],
+  sessions: AgentSession[],
+  attachedDeviceIds: Set<string>,
+): Array<[string, DeviceAgent]> {
+  return lanes
+    .filter((lane) => !attachedDeviceIds.has(lane.simulatorUdid))
+    .flatMap((lane) =>
+      sessions
+        .filter((session) => within(lane.worktreePath, session.cwd))
+        .map((session): [string, DeviceAgent] => [
+          lane.simulatorUdid,
+          { ...session, via: "lane-worktree", lastSeenAt: session.updatedAt },
+        ]),
     );
-    return owner ? [{ ...owner, via: "lane-owner", lastSeenAt: owner.updatedAt }] : [];
-  }
-  return sessions
-    .filter((session) => within(lane.worktreePath, session.cwd))
-    .map((session) => ({ ...session, via: "lane-worktree" as const, lastSeenAt: session.updatedAt }));
 }

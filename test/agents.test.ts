@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { laneAgents, requestAgent, type AgentSession } from "../src/agents";
+import { laneWorktreeAgents, requestAgent, type AgentSession } from "../src/agents";
 import type { FleetSession } from "../src/state";
 
 const session = (sessionId: string, cwd: string): AgentSession => ({
@@ -13,11 +13,11 @@ const session = (sessionId: string, cwd: string): AgentSession => ({
   updatedAt: null,
 });
 
-const lane = (worktreePath: string, startedBy?: FleetSession["startedBy"]): FleetSession => ({
-  id: "lane",
+const lane = (simulatorUdid: string, worktreePath: string): FleetSession => ({
+  id: `lane-${simulatorUdid}`,
   branch: "main",
   worktreePath,
-  simulatorUdid: "UDID",
+  simulatorUdid,
   environment: "development",
   mode: "debug",
   bundleId: "com.example",
@@ -25,34 +25,27 @@ const lane = (worktreePath: string, startedBy?: FleetSession["startedBy"]): Flee
   metroPid: null,
   logPath: "/tmp/lane.log",
   startedAt: new Date(0).toISOString(),
-  ...(startedBy ? { startedBy } : {}),
 });
 
-describe("lane attribution", () => {
-  const sessions = [session("a", "/repo"), session("b", "/repo"), session("c", "/elsewhere")];
+describe("lane worktree attribution", () => {
+  const sessions = [session("a", "/repo"), session("b", "/repo/sub"), session("c", "/elsewhere")];
 
-  test("credits only the session that started the lane", () => {
-    const agents = laneAgents(lane("/repo", { agent: "claude", sessionId: "a" }), sessions);
-    expect(agents.map((agent) => [agent.sessionId, agent.via])).toEqual([["a", "lane-owner"]]);
-  });
-
-  test("credits the starter even when the worktree is outside its directory", () => {
-    const agents = laneAgents(lane("/worktrees/x", { agent: "claude", sessionId: "c" }), sessions);
-    expect(agents.map((agent) => agent.sessionId)).toEqual(["c"]);
-  });
-
-  test("credits nobody once the starting session is gone", () => {
-    expect(laneAgents(lane("/repo", { agent: "claude", sessionId: "gone" }), sessions)).toEqual([]);
-  });
-
-  test("falls back to the worktree match for lanes with no recorded starter", () => {
-    const agents = laneAgents(lane("/repo"), sessions);
-    expect(agents.map((agent) => [agent.sessionId, agent.via])).toEqual([
-      ["a", "lane-worktree"],
-      ["b", "lane-worktree"],
+  test("guesses sessions working inside an unclaimed lane's worktree", () => {
+    const agents = laneWorktreeAgents([lane("D1", "/repo")], sessions, new Set());
+    expect(agents.map(([device, agent]) => [device, agent.sessionId, agent.via])).toEqual([
+      ["D1", "a", "lane-worktree"],
+      ["D1", "b", "lane-worktree"],
     ]);
   });
 
+  test("skips devices that a session already claimed or touched", () => {
+    const lanes = [lane("D1", "/repo"), lane("D2", "/repo")];
+    const agents = laneWorktreeAgents(lanes, sessions, new Set(["D1"]));
+    expect(agents.map(([device]) => device)).toEqual(["D2", "D2"]);
+  });
+});
+
+describe("request identity", () => {
   test("reads a well-formed agent identity from request headers", () => {
     const headers = (entries: Record<string, string>) => new Headers(entries);
     expect(

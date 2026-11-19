@@ -520,13 +520,18 @@ function devicePlatformFor(deviceId: string, requested?: unknown): DevicePlatfor
 }
 
 /** Records which agent session drove a device, from the CLI's identity headers. */
-function recordTouch(request: Request, deviceId: string, platform: DevicePlatform): void {
+function recordTouch(
+  request: Request,
+  deviceId: string,
+  platform: DevicePlatform,
+  source: "touch" | "claim" = "touch",
+): void {
   const identity = requestAgent(request.headers);
   if (!identity) return;
   try {
-    recordAttachment({ deviceId, platform, ...identity, source: "touch" });
+    recordAttachment({ deviceId, platform, ...identity, source });
   } catch (error) {
-    console.warn("[sim-fleet] could not record agent touch", error);
+    console.warn(`[sim-fleet] could not record agent ${source}`, error);
   }
 }
 
@@ -588,7 +593,6 @@ async function startSession(request: Request): Promise<Response> {
     port = await allocatePort(input.environment, input.mode, currentState.sessions);
   }
   const id = sessionId(worktree.branch, input.simulatorUdid);
-  const startedBy = requestAgent(request.headers);
   const base: FleetSession = {
     id,
     platform,
@@ -602,7 +606,6 @@ async function startSession(request: Request): Promise<Response> {
     metroPid: null,
     logPath: logPathFor(id),
     startedAt: new Date().toISOString(),
-    ...(startedBy ? { startedBy } : {}),
   };
   const session: FleetSession =
     input.mode === "debug"
@@ -619,7 +622,8 @@ async function startSession(request: Request): Promise<Response> {
     );
     state.sessions.push(session);
   });
-  recordTouch(request, session.simulatorUdid, platform);
+  // Starting a lane claims its device, so the lane stays attributed after the touch expires.
+  recordTouch(request, session.simulatorUdid, platform, "claim");
   invalidateStatus();
   return json({ session }, { status: 201 });
 }
@@ -994,7 +998,7 @@ function capabilitiesPayload() {
     },
     agentAttribution: {
       headers: [AGENT_HEADER, SESSION_HEADER],
-      sources: ["claim", "touch", "lane-owner", "lane-worktree"],
+      sources: ["claim", "touch", "lane-worktree"],
     },
     inputKinds: [
       "tap",

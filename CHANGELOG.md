@@ -8,10 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- A lane is attributed to the agent session that started it (`via: "lane-owner"`), not to every
-  session whose working directory is inside its worktree. Agents launched from one checkout no longer
-  all show up on a lane started there, and a lane in a worktree outside the agent's directory is still
-  credited to it. Lanes started from the dashboard keep the worktree match.
+- `lane start` claims the device for the agent session that sent it, so the lane stays attributed to
+  that session after its touch expires, even when the worktree is outside the session's directory.
+  Matching sessions by worktree now applies only to devices nobody has claimed or touched, so agents
+  launched from one checkout no longer all show up on a lane started there.
 
 ## [0.1.1] - 2026-09-29
 
