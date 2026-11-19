@@ -7,6 +7,7 @@ import {
   FLEET_CONFIG,
   NATIVE_SHELLS,
   PROJECT_CONFIG,
+  envFileValues,
   projectBundleEnv,
   type AppEnvironment,
   type BuildMode,
@@ -185,6 +186,7 @@ async function buildNativeShell(
   const cacheResult = await provider.resolveBuildCache(context);
   if (cacheResult) return cacheResult;
   const environment = {
+    ...envFileValues(worktreePath, "development"),
     ...process.env,
     NODE_ENV: mode === "debug" ? "development" : "production",
     ...projectBundleEnv({ environment: "development", mode, port: "embedded" }),
@@ -356,6 +358,7 @@ export async function createRebundledRelease(
   fs.cpSync(ensured.artifactPath, destination, { recursive: true });
   const expo = path.join(worktreePath, "node_modules", ".bin", "expo");
   const releaseEnvironment = {
+    ...envFileValues(worktreePath, environment),
     ...process.env,
     NODE_ENV: "production",
     METRO_PORT: "embedded",
