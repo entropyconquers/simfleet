@@ -35,10 +35,16 @@ simfleet lane start <worktree> <device> [environment] [debug|release] [preferred
 simfleet lane launch <lane-id>        # waits up to 15 s for Metro health, then opens the app
 simfleet lane open-url <lane-id> buy  # a path uses the lane's scheme; a full URL passes through
 simfleet lane log <lane-id>           # Metro output
-simfleet lane stop <lane-id>          # stops only the Metro process group this lane owns
+simfleet lane stop <lane-id>          # stops the Metro process group once no other lane shares it
 ```
 
-Lane creation **fails instead of stealing**: a device, worktree, or port already in use by another lane is an error, not a takeover.
+## Several devices on one worktree
+
+Start more debug lanes from the same worktree to run it on several devices at once, typically an iOS simulator and an Android emulator. The extra lanes reuse the worktree's Metro and port instead of leasing new ones, so they must use the same environment. Each lane still targets one device, so `launch`, `open-url` and `stop` act on that device alone, and Metro keeps running until the last lane sharing it stops.
+
+To compare two versions side by side, run each from its own worktree.
+
+Lane creation **fails instead of stealing**: a device or port already in use by another lane is an error, not a takeover.
 
 ## Debug and release
 

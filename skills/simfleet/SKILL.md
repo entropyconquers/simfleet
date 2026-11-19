@@ -74,10 +74,11 @@ simfleet lane launch <lane-id>                             # 6. waits for Metro 
 simfleet lane open-url <lane-id> <path-or-url>             #    uses the mode's scheme
 ```
 
-Lane creation fails rather than stealing a worktree, device, or occupied port. If launch reports Metro
+Lane creation fails rather than stealing a device or occupied port. A second debug lane from the same
+worktree (e.g. iOS + Android) shares that worktree's Metro and must use the same environment. If launch reports Metro
 not ready, read `simfleet lane log <lane-id>` and fix the actual Metro error while keeping the lease.
 
-Parallel agents each own exactly one worktree, device, and lane; `native ensure` may be called
+Parallel agents each own their worktree(s) and the devices and lanes they started; `native ensure` may be called
 concurrently (one build, everyone reuses it).
 
 ## Drive a device

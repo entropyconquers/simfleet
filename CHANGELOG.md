@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A worktree can run on several devices at once. Starting another debug lane from a worktree that
+  already has one (say an Android emulator next to an iPhone) reuses that worktree's Metro and port
+  instead of failing. Stopping a lane leaves Metro running while another lane still uses it.
+
 ## [0.1.1] - 2026-09-29
 
 ### Fixed

@@ -37,7 +37,8 @@ agents stepping on each other's devices. simfleet turns that into one managed fl
   over MJPEG, Android as hardware H.264 through [scrcpy](https://github.com/Genymobile/scrcpy)'s device
   server with real touch down/move/up (15–80 ms input-to-frame on an M-series Mac).
 - **Lanes, not port juggling.** A lane is one worktree on one device with one leased Metro port from the
-  environment's range. Lanes refuse to steal a device, worktree, or port.
+  environment's range. More lanes from the same worktree (say an iPhone and an emulator) share its
+  Metro. Lanes refuse to steal a device or port.
 - **Native builds once.** An Expo `buildCacheProvider` fingerprints native inputs (JS excluded) and
   single-flights misses, so ten agents on JS-only branches share one build, and switching
   staging/production never rebuilds native.
