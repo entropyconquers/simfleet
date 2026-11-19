@@ -15,7 +15,8 @@ import { isProcessRunning } from "./system";
  * Discovers live coding-agent sessions (Claude Code and Codex) and attributes
  * them to devices. Attribution comes from three signals, strongest first:
  * an explicit claim, a recent CLI/API request carrying the agent's session
- * headers ("touch"), and a lane whose worktree is the agent's working directory.
+ * headers ("touch"), and a lane the agent started (or, for lanes with no recorded
+ * starter, whose worktree is the agent's working directory).
  */
 
 export type AgentKind = "claude" | "codex";
@@ -32,13 +33,21 @@ export type AgentSession = {
 };
 
 export type DeviceAgent = AgentSession & {
-  via: "claim" | "touch" | "lane-worktree";
+  via: "claim" | "touch" | "lane-owner" | "lane-worktree";
   lastSeenAt: string | null;
   note?: string;
 };
 
 export const AGENT_HEADER = "x-simfleet-agent";
 export const SESSION_HEADER = "x-simfleet-session";
+
+/** The agent identity a CLI request carries, if its headers are well formed. */
+export function requestAgent(headers: Headers): { agent: string; sessionId: string } | null {
+  const agent = headers.get(AGENT_HEADER);
+  const sessionId = headers.get(SESSION_HEADER);
+  if (!agent || !sessionId || !/^[\w.-]{1,40}$/.test(agent) || sessionId.length > 200) return null;
+  return { agent, sessionId };
+}
 
 const TOUCH_TTL_MS = 30 * 60 * 1000;
 const CODEX_ACTIVE_WINDOW_MS = 30 * 60 * 1000;
@@ -261,10 +270,25 @@ export function attributeAgents(
   }
 
   for (const lane of lanes) {
-    for (const session of sessions) {
-      if (!within(lane.worktreePath, session.cwd)) continue;
-      add(lane.simulatorUdid, { ...session, via: "lane-worktree", lastSeenAt: session.updatedAt });
-    }
+    for (const agent of laneAgents(lane, sessions)) add(lane.simulatorUdid, agent);
   }
   return byDevice;
+}
+
+/**
+ * Agents a lane is attributed to: the live session that started it, or, for lanes
+ * with no recorded starter, sessions working inside its worktree. Matching by
+ * directory alone would credit every agent launched from the same checkout.
+ */
+export function laneAgents(lane: FleetSession, sessions: AgentSession[]): DeviceAgent[] {
+  if (lane.startedBy) {
+    const owner = sessions.find(
+      (session) =>
+        session.kind === lane.startedBy!.agent && session.sessionId === lane.startedBy!.sessionId,
+    );
+    return owner ? [{ ...owner, via: "lane-owner", lastSeenAt: owner.updatedAt }] : [];
+  }
+  return sessions
+    .filter((session) => within(lane.worktreePath, session.cwd))
+    .map((session) => ({ ...session, via: "lane-worktree" as const, lastSeenAt: session.updatedAt }));
 }

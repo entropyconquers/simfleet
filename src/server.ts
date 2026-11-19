@@ -55,6 +55,7 @@ import {
   getAgentSessions,
   recordAttachment,
   releaseAttachment,
+  requestAgent,
 } from "./agents";
 import { createRebundledRelease, ensureNativeShell, nativeBuildPlan } from "./native";
 import { createFleetWorktree } from "./worktree";
@@ -520,11 +521,10 @@ function devicePlatformFor(deviceId: string, requested?: unknown): DevicePlatfor
 
 /** Records which agent session drove a device, from the CLI's identity headers. */
 function recordTouch(request: Request, deviceId: string, platform: DevicePlatform): void {
-  const agent = request.headers.get(AGENT_HEADER);
-  const sessionId = request.headers.get(SESSION_HEADER);
-  if (!agent || !sessionId || !/^[\w.-]{1,40}$/.test(agent) || sessionId.length > 200) return;
+  const identity = requestAgent(request.headers);
+  if (!identity) return;
   try {
-    recordAttachment({ deviceId, platform, agent, sessionId, source: "touch" });
+    recordAttachment({ deviceId, platform, ...identity, source: "touch" });
   } catch (error) {
     console.warn("[sim-fleet] could not record agent touch", error);
   }
@@ -588,6 +588,7 @@ async function startSession(request: Request): Promise<Response> {
     port = await allocatePort(input.environment, input.mode, currentState.sessions);
   }
   const id = sessionId(worktree.branch, input.simulatorUdid);
+  const startedBy = requestAgent(request.headers);
   const base: FleetSession = {
     id,
     platform,
@@ -601,6 +602,7 @@ async function startSession(request: Request): Promise<Response> {
     metroPid: null,
     logPath: logPathFor(id),
     startedAt: new Date().toISOString(),
+    ...(startedBy ? { startedBy } : {}),
   };
   const session: FleetSession =
     input.mode === "debug"
@@ -992,7 +994,7 @@ function capabilitiesPayload() {
     },
     agentAttribution: {
       headers: [AGENT_HEADER, SESSION_HEADER],
-      sources: ["claim", "touch", "lane-worktree"],
+      sources: ["claim", "touch", "lane-owner", "lane-worktree"],
     },
     inputKinds: [
       "tap",

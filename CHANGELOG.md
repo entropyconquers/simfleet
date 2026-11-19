@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- A lane is attributed to the agent session that started it (`via: "lane-owner"`), not to every
+  session whose working directory is inside its worktree. Agents launched from one checkout no longer
+  all show up on a lane started there, and a lane in a worktree outside the agent's directory is still
+  credited to it. Lanes started from the dashboard keep the worktree match.
+
 ## [0.1.1] - 2026-09-29
 
 ### Fixed

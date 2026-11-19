@@ -2,7 +2,7 @@
 
 export type Platform = "ios" | "android";
 export type AgentKind = "claude" | "codex";
-export type AttachmentVia = "claim" | "touch" | "lane-worktree";
+export type AttachmentVia = "claim" | "touch" | "lane-owner" | "lane-worktree";
 
 export type AgentSession = {
   kind: AgentKind;

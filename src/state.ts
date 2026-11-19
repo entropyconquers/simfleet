@@ -19,6 +19,8 @@ export type FleetSession = {
   metroPid: number | null;
   logPath: string;
   startedAt: string;
+  /** The agent session whose request started the lane; absent for dashboard lanes. */
+  startedBy?: { agent: string; sessionId: string };
 };
 
 /**
