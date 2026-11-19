@@ -30,7 +30,7 @@ Each attributed request records a **touch** on the device, which expires after 3
 }
 ```
 
-`via` is `claim`, `touch`, or `lane-worktree` (a lane whose worktree is the session's working directory).
+`via` is `claim`, `touch`, or `lane-worktree`. Starting a lane claims its device for the requesting session. `lane-worktree` (a lane whose worktree is the session's working directory) applies only to devices no session has claimed or touched, such as a lane started from the dashboard.
 
 ## `POST /api/v1/devices/{deviceId}/claim`
 

@@ -16,7 +16,7 @@ The `simfleet` CLI detects the session it runs in and sends it with every reques
 | Codex | `CODEX_THREAD_ID` or `CODEX_SESSION_ID` |
 | Anything else | `SIMFLEET_AGENT` and `SIMFLEET_SESSION_ID` |
 
-A device request (tap, boot, screenshot, lane start, …) from a session records a **touch** on that device. Touches expire after 30 minutes without activity. A lane whose worktree matches an agent session's working directory is attributed to that session too.
+A device request (tap, boot, screenshot, lane start, …) from a session records a **touch** on that device. Touches expire after 30 minutes without activity. Starting a lane claims its device for the session that sent the request, so the lane stays attributed after the touch expires. A device nobody has claimed or touched, such as one whose lane was started from the dashboard, is attributed to sessions working inside the lane's worktree.
 
 ## Claims
 

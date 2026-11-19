@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `lane start` claims the device for the agent session that sent it, so the lane stays attributed to
+  that session after its touch expires, even when the worktree is outside the session's directory.
+  Matching sessions by worktree now applies only to devices nobody has claimed or touched, so agents
+  launched from one checkout no longer all show up on a lane started there.
+
 ## [0.1.1] - 2026-09-29
 
 ### Fixed

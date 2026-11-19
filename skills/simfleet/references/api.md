@@ -132,7 +132,7 @@ Emulators are addressed by AVD name. `GET /api/v1/status` includes `emulators[]`
 - Send `x-simfleet-agent` (`claude` or `codex`) and `x-simfleet-session` on device requests; the
   `simfleet` CLI does this automatically from `CLAUDE_CODE_SESSION_ID` or `CODEX_THREAD_ID`.
 - `GET /api/v1/agents` returns live sessions and, per device, the attached agents with
-  `via: "claim" | "touch" | "lane-worktree"`. Touches expire after 30 minutes of inactivity; claims
+  `via: "claim" | "touch" | "lane-worktree"`. `lane start` claims the device for the requesting session. Touches expire after 30 minutes of inactivity; claims
   last until released or until the Claude session exits.
 - `POST /api/v1/devices/{deviceId}/claim` with `{ "agent", "sessionId", "note" }` claims a device;
   `DELETE` on the same path releases it.
