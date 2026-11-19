@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Lanes and bundles load the environment's `envFile`. It was documented but never read, and Expo's own
+  dotenv loading is disabled for lanes, so apps got none of its values. Variables already set in the
+  shell still win.
+
 ## [0.1.1] - 2026-09-29
 
 ### Fixed

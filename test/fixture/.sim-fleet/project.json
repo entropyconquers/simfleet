@@ -7,7 +7,7 @@
   },
   "environments": {
     "development": { "portRange": [8100, 8199] },
-    "staging": { "portRange": [8200, 8299] },
+    "staging": { "envFile": ".env.staging", "portRange": [8200, 8299] },
     "preprod": { "portRange": [8300, 8399] },
     "production": { "portRange": [8400, 8499] }
   },

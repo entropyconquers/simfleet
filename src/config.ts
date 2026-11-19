@@ -218,6 +218,28 @@ export function renderEnvTemplate(
   return rendered;
 }
 
+/**
+ * Values from the environment's `envFile` (relative to the worktree). Expo's own
+ * dotenv loading is disabled for lanes, so without this the file is never read.
+ */
+export function envFileValues(worktreePath: string, environment: AppEnvironment): Record<string, string> {
+  const envFile = projectConfig.environments[environment]?.envFile;
+  if (!envFile) return {};
+  const filePath = path.resolve(worktreePath, envFile);
+  if (!fs.existsSync(filePath)) return {};
+  const values: Record<string, string> = {};
+  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!match) continue;
+    let value = match[2];
+    const quoted = value.match(/^(["'])(.*)\1$/);
+    if (quoted) value = quoted[2];
+    else value = value.replace(/\s+#.*$/, "");
+    values[match[1]] = value;
+  }
+  return values;
+}
+
 /** Project-declared environment for a Metro server or embedded bundle. */
 export function projectBundleEnv(values: {
   environment: AppEnvironment;
