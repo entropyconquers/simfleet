@@ -519,8 +519,8 @@ function devicePlatformFor(deviceId: string, requested?: unknown): DevicePlatfor
   throw new HttpError(`Unknown device ${deviceId}: not a simulator UDID or installed AVD`, 404);
 }
 
-/** Records which agent session drove a device, from the CLI's identity headers. */
-function recordTouch(
+/** Records the requesting agent's touch (or claim) on a device, from the CLI's identity headers. */
+function recordAgentAttachment(
   request: Request,
   deviceId: string,
   platform: DevicePlatform,
@@ -623,7 +623,7 @@ async function startSession(request: Request): Promise<Response> {
     state.sessions.push(session);
   });
   // Starting a lane claims its device, so the lane stays attributed after the touch expires.
-  recordTouch(request, session.simulatorUdid, platform, "claim");
+  recordAgentAttachment(request, session.simulatorUdid, platform, "claim");
   invalidateStatus();
   return json({ session }, { status: 201 });
 }
@@ -1074,7 +1074,7 @@ const server = Bun.serve<ControlSocketData>({
         if (!(await androidStreamAvailable())) {
           return errorResponse("scrcpy is not installed; install it with `brew install scrcpy`", 501);
         }
-        recordTouch(request, avd, "android");
+        recordAgentAttachment(request, avd, "android");
         if (server.upgrade(request, { data: { kind: "android", avd } })) return;
         return errorResponse("Could not open emulator stream WebSocket", 502);
       }
@@ -1294,12 +1294,12 @@ const server = Bun.serve<ControlSocketData>({
           if (point && (!Number.isFinite(point.x) || !Number.isFinite(point.y))) {
             return errorResponse("x and y must be finite numbers");
           }
-          recordTouch(request, avd, "android");
+          recordAgentAttachment(request, avd, "android");
           return json({ tree: await describeEmulatorUi(avd, point) });
         }
         if (request.method === "POST" && operation === "input") {
           const input = parseAndroidInput(await body(request));
-          recordTouch(request, avd, "android");
+          recordAgentAttachment(request, avd, "android");
           await sendEmulatorInput(avd, input);
           return json({ ok: true, inputKind: input.kind, avd });
         }
@@ -1317,7 +1317,7 @@ const server = Bun.serve<ControlSocketData>({
               stock: input.stock === true,
             };
           }
-          recordTouch(request, avd, "android");
+          recordAgentAttachment(request, avd, "android");
           const id = `emu-${action}-${avd.slice(0, 16)}-${Date.now().toString(36)}`;
           const job: EmulatorActionJob = {
             id,
@@ -1368,7 +1368,7 @@ const server = Bun.serve<ControlSocketData>({
         if (point && (!Number.isFinite(point.x) || !Number.isFinite(point.y))) {
           return errorResponse("x and y must be finite numbers");
         }
-        recordTouch(request, uiMatch[1], "ios");
+        recordAgentAttachment(request, uiMatch[1], "ios");
         return json({ tree: await describeSimulatorUi(uiMatch[1], point) });
       }
       const simulatorMatch = url.pathname.match(
@@ -1381,7 +1381,7 @@ const server = Bun.serve<ControlSocketData>({
           const input = await body(request).catch(() => ({}) as Record<string, unknown>);
           if (input.stock === true) action = "boot-stock";
         }
-        recordTouch(request, simulatorUdid, "ios");
+        recordAgentAttachment(request, simulatorUdid, "ios");
         const id = `sim-${action}-${simulatorUdid.slice(0, 8)}-${Date.now().toString(36)}`;
         const job: SimulatorActionJob = {
           id,
@@ -1415,7 +1415,7 @@ const server = Bun.serve<ControlSocketData>({
       const inputMatch = url.pathname.match(/^\/api\/v1\/simulators\/([A-F0-9-]+)\/input$/i);
       if (request.method === "POST" && inputMatch) {
         const input = parseSimulatorInput(await body(request));
-        recordTouch(request, inputMatch[1], "ios");
+        recordAgentAttachment(request, inputMatch[1], "ios");
         await sendSimulatorInput(inputMatch[1], input);
         return json({ ok: true, inputKind: input.kind, simulatorUdid: inputMatch[1] });
       }
@@ -1437,7 +1437,7 @@ const server = Bun.serve<ControlSocketData>({
             (candidate) => candidate.id === sessionMatch[1],
           );
           if (!session) return errorResponse("Unknown fleet session", 404);
-          recordTouch(request, session.simulatorUdid, sessionPlatform(session));
+          recordAgentAttachment(request, session.simulatorUdid, sessionPlatform(session));
           if (session.mode === "release") {
             const job = startLaneLaunchJob(session.id);
             return json(
@@ -1450,7 +1450,7 @@ const server = Bun.serve<ControlSocketData>({
         const session = loadState().sessions.find((candidate) => candidate.id === sessionMatch[1]);
         if (!session) return errorResponse("Unknown fleet session", 404);
         const target = laneDeepLink(session, await body(request));
-        recordTouch(request, session.simulatorUdid, sessionPlatform(session));
+        recordAgentAttachment(request, session.simulatorUdid, sessionPlatform(session));
         if (sessionPlatform(session) === "android") {
           await sendEmulatorInput(session.simulatorUdid, { kind: "open-url", url: target });
         } else {
